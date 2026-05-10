@@ -16,40 +16,50 @@ fail2ban monitora i tentativi di accesso falliti (es. SSH brute-force) e banna a
 
 ### Funzionalità
 
-- **Dashboard in tempo reale** — visualizza tutti gli IP bannati con data dell'ultimo ban, tempo residuo, tentativi totali e tentativi attivi *dopo* il ban
+- **Dashboard in tempo reale** — visualizza tutti gli IP bannati con nazionalità (CC), data dell'ultimo ban, tempo residuo, tentativi totali e grafico a barre ASCII
+- **Geolocalizzazione** — mostra il paese di origine di ogni IP nella tabella (richiede `geoiplookup`)
+- **Grafico a barre ASCII** — visualizzazione immediata dell'aggressività relativa di ogni IP direttamente nella lista
+- **Contatore storico** — quanti IP distinti sono stati bannati dall'inizio (via database SQLite di fail2ban)
+- **Statistiche avanzate** `[t]` — schermata dedicata con:
+  - Top 5 IP più aggressivi di sempre (dal log corrente) con barra e paese
+  - Distribuzione geografica degli IP bannati attualmente (paese → barra → conteggio → %)
 - **Sbanna un IP** — rimuovi il ban di un indirizzo IP con un semplice numero o copiando l'IP
 - **Gestione ban time** — modifica la durata del ban globale oppure per un singolo IP (unban + re-ban con nuova durata)
   - Preset pronti: 1 giorno, 5 giorni, 7 giorni, 10 giorni, 15 giorni, 30 giorni, permanente
   - Input custom: formati come `2h30m`, `5d`, `7200`, `-1` (permanente)
-- **Ordinamento flessibile** — ordina la lista per: ordine originale, IP crescente, data ban (più recenti prima), numero di tentativi (più aggressivi prima)
+- **Ordinamento flessibile** — ordina per: ordine originale, IP crescente, data ban (più recenti prima), numero di tentativi (più aggressivi prima)
 - **Ultimi 20 eventi dal log** — visualizza gli eventi di Ban / Unban / Found con colori
+- **Multilingua IT/EN** — premi `[g]` in qualsiasi momento per cambiare lingua al volo
 - **Auto-elevazione root** — se non sei root, lo script si ri-esegue automaticamente con `sudo`
 
 ### Screenshot
 
 ```
 ==============================================================================
-          FAIL2BAN MANAGER — SSH Protection
+          FAIL2BAN MANAGER — SSH Protection                            [IT]
 ==============================================================================
-  09/05/2026 14:32:05
+  10/05/2026 09:15:42
 ==============================================================================
 
   Tentativi falliti totali : 1482
-  IP bannati attualmente   : 5
+  IP bannati attualmente   : 3
+  IP bannati (storico)     : 214
   Ban time (default)       : 7g
   Ordinamento              : per data ban (recenti prima)
 
-  #     IP                  Ultimo ban           Residuo     Tot  Attivi
-  ----------------------------------------------------------------------
-  [1 ]  203.0.113.45        2026-05-09 13:10:01  6g 22h       47  🔴 +3
-  [2 ]  198.51.100.12       2026-05-08 09:44:17  5g 19h       23
-  [3 ]  192.0.2.77          2026-05-07 21:05:55  4g 6h        11
+  #     IP               CC  Ultimo ban           Residuo    Tot  Tentativi
+  ──────────────────────────────────────────────────────────────────────────
+  [1 ]  203.0.113.45     CN  2026-05-09 13:10:01  6g 22h      47  ████████░░  🔴 +3
+  [2 ]  198.51.100.12    RU  2026-05-08 09:44:17  5g 19h      23  ████░░░░░░
+  [3 ]  192.0.2.77       US  2026-05-07 21:05:55  4g 6h       11  ██░░░░░░░░
 
   [r] Aggiorna
   [u] Sbanna un IP
   [b] Gestisci ban time
   [s] Cambia ordinamento
   [l] Ultimi eventi dal log
+  [t] Statistiche avanzate
+  [g] Lingua / Language  →  EN
   [q] Esci
 ```
 
@@ -178,6 +188,8 @@ Lo script rileva automaticamente se non è in esecuzione come root e si ri-esegu
 | `b`   | Menu gestione ban time |
 | `s`   | Cambia ordinamento |
 | `l`   | Mostra ultimi 20 eventi dal log |
+| `t`   | Statistiche avanzate (Top 5, mappa geografica) |
+| `g`   | Cambia lingua IT ↔ EN |
 | `q`   | Esci |
 
 ---
@@ -187,6 +199,9 @@ Lo script rileva automaticamente se non è in esecuzione come root e si ri-esegu
 - Il tempo residuo del ban viene letto direttamente dal database SQLite di fail2ban (`/var/lib/fail2ban/fail2ban.sqlite3`), quindi è preciso al secondo.
 - Il cambio di ban time per singolo IP funziona con: unban → imposta nuovo bantime → re-ban → ripristina bantime originale.
 - I tentativi "Attivi" (🔴 +N) indicano quanti `Found` sono stati registrati *dopo* l'ultimo ban dell'IP — un segnale che l'attacco è ancora in corso.
+- Il grafico a barre ASCII è relativo: la barra più lunga corrisponde all'IP con più tentativi tra quelli attualmente bannati.
+- Il contatore storico e il Top 5 sono basati sul database SQLite e sul log corrente (`/var/log/fail2ban.log`). Log ruotati non vengono letti.
+- La geolocalizzazione usa `geoiplookup` (pacchetto `geoip-bin`). I risultati sono memorizzati in cache per tutta la sessione. Se non disponibile, la colonna CC mostra `??`.
 - Compatibile con qualsiasi sistema che abbia fail2ban con jail `sshd` attiva.
 
 ---
@@ -208,40 +223,50 @@ fail2ban monitors failed login attempts (e.g. SSH brute-force) and automatically
 
 ### Features
 
-- **Real-time dashboard** — displays all banned IPs with last ban date, remaining time, total attempts, and active attempts *after* the ban
+- **Real-time dashboard** — displays all banned IPs with country (CC), last ban date, remaining time, total attempts, and ASCII bar chart
+- **Geolocation** — shows the country of origin for each IP in the table (requires `geoiplookup`)
+- **ASCII bar chart** — immediate visual representation of each IP's relative aggressiveness, directly in the list
+- **Historical counter** — total distinct IPs ever banned since the beginning (via fail2ban's SQLite database)
+- **Advanced statistics** `[t]` — dedicated screen with:
+  - Top 5 most aggressive IPs of all time (from current log) with bar chart and country
+  - Geographic breakdown of currently banned IPs (country → bar → count → %)
 - **Unban an IP** — remove the ban on an IP address using a simple number or by typing the IP
 - **Ban time management** — change the global ban duration or for a single IP (unban + re-ban with new duration)
   - Ready-made presets: 1 day, 5 days, 7 days, 10 days, 15 days, 30 days, permanent
   - Custom input: formats like `2h30m`, `5d`, `7200`, `-1` (permanent)
-- **Flexible sorting** — sort the list by: original order, ascending IP, ban date (most recent first), number of attempts (most aggressive first)
+- **Flexible sorting** — sort by: original order, ascending IP, ban date (most recent first), number of attempts (most aggressive first)
 - **Last 20 log events** — displays Ban / Unban / Found events with color coding
+- **Bilingual IT/EN** — press `[g]` at any time to switch language on the fly
 - **Auto root elevation** — if you're not root, the script automatically re-runs itself with `sudo`
 
 ### Screenshot
 
 ```
 ==============================================================================
-          FAIL2BAN MANAGER — SSH Protection
+          FAIL2BAN MANAGER — SSH Protection                            [EN]
 ==============================================================================
-  09/05/2026 14:32:05
+  10/05/2026 09:15:42
 ==============================================================================
 
   Total failed attempts    : 1482
-  Currently banned IPs     : 5
+  Currently banned IPs     : 3
+  IPs banned (all time)    : 214
   Ban time (default)       : 7d
   Sort order               : by ban date (most recent first)
 
-  #     IP                  Last ban             Remaining    Tot  Active
-  ----------------------------------------------------------------------
-  [1 ]  203.0.113.45        2026-05-09 13:10:01  6d 22h        47  🔴 +3
-  [2 ]  198.51.100.12       2026-05-08 09:44:17  5d 19h        23
-  [3 ]  192.0.2.77          2026-05-07 21:05:55  4d 6h         11
+  #     IP               CC  Last ban             Remaining  Tot  Attempts
+  ──────────────────────────────────────────────────────────────────────────
+  [1 ]  203.0.113.45     CN  2026-05-09 13:10:01  6d 22h      47  ████████░░  🔴 +3
+  [2 ]  198.51.100.12    RU  2026-05-08 09:44:17  5d 19h      23  ████░░░░░░
+  [3 ]  192.0.2.77       US  2026-05-07 21:05:55  4d 6h       11  ██░░░░░░░░
 
   [r] Refresh
   [u] Unban an IP
   [b] Manage ban time
   [s] Change sort order
   [l] Last log events
+  [t] Advanced statistics
+  [g] Lingua / Language  →  IT
   [q] Quit
 ```
 
@@ -370,6 +395,8 @@ The script automatically detects if it's not running as root and re-executes its
 | `b` | Ban time management menu |
 | `s` | Change sort order |
 | `l` | Show last 20 log events |
+| `t` | Advanced statistics (Top 5, geo map) |
+| `g` | Switch language IT ↔ EN |
 | `q` | Quit |
 
 ---
@@ -379,6 +406,9 @@ The script automatically detects if it's not running as root and re-executes its
 - Remaining ban time is read directly from fail2ban's SQLite database (`/var/lib/fail2ban/fail2ban.sqlite3`), so it is accurate to the second.
 - Per-IP ban time change works as: unban → set new bantime → re-ban → restore original bantime.
 - "Active" attempts (🔴 +N) indicate how many `Found` events were recorded *after* the IP's last ban — a signal that the attack is still ongoing.
+- The ASCII bar chart is relative: the longest bar corresponds to the IP with the most attempts among those currently banned.
+- The historical counter and Top 5 are based on the SQLite database and the current log (`/var/log/fail2ban.log`). Rotated logs are not read.
+- Geolocation uses `geoiplookup` (`geoip-bin` package). Results are cached in memory for the session. If unavailable, the CC column shows `??`.
 - Compatible with any system that has fail2ban with the `sshd` jail active.
 
 ---
