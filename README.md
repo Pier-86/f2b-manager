@@ -2,18 +2,18 @@
 
 # 🛡️ f2b-manager
 
-### Fail2ban SSH Manager — Terminal User Interface
+### Fail2ban Manager — TUI + Web Dashboard + Docker
 
-[![Python](https://img.shields.io/badge/Python-3.6%2B-3776AB?logo=python&logoColor=white)](https://python.org)
-[![Platform](https://img.shields.io/badge/Platform-Linux-FCC624?logo=linux&logoColor=black)](https://kernel.org)
+[![Python](https://img.shields.io/badge/Python-3.11%2B-3776AB?logo=python&logoColor=white)](https://python.org)
+[![Platform](https://img.shields.io/badge/Platform-Linux%20%7C%20Synology-FCC624?logo=linux&logoColor=black)](https://kernel.org)
 [![License](https://img.shields.io/badge/License-MIT-22c55e)](LICENSE)
-[![Dependencies](https://img.shields.io/badge/Dependencies-None-brightgreen)]()
 [![Language](https://img.shields.io/badge/Language-IT%20%7C%20EN-8b5cf6)]()
+[![Docker](https://img.shields.io/badge/Docker-ready-2496ED?logo=docker&logoColor=white)]()
 
 <br>
 
-*Gestisci fail2ban dal terminale — senza ricordare un solo comando.*
-*Manage fail2ban from the terminal — without memorizing a single command.*
+*Gestisci fail2ban dal terminale o dal browser — con supporto multi-jail e Synology.*
+*Manage fail2ban from terminal or browser — with multi-jail and Synology support.*
 
 <br>
 
@@ -27,9 +27,12 @@
 
 ### Cos'è f2b-manager?
 
-`f2b-manager` è uno strumento TUI (**Terminal User Interface**) scritto in Python puro che ti permette di gestire **fail2ban** in modo semplice, visivo e immediato — direttamente dal terminale del tuo server.
+`f2b-manager` è uno strumento completo per gestire **fail2ban** con due interfacce:
 
-Nessuna dipendenza esterna. Nessun framework. Avvialo e hai tutto sotto controllo.
+- **TUI** (Terminal User Interface) — dashboard interattiva da terminale, zero dipendenze
+- **Web App** — dashboard moderna via browser con API REST, deployabile con Docker
+
+Supporta **jails multipli** (`sshd`, `synology-dsm`, `nginx-http-auth`, `postfix`, ecc.) e funziona su **Linux** e **Synology DSM**.
 
 ---
 
@@ -37,28 +40,32 @@ Nessuna dipendenza esterna. Nessun framework. Avvialo e hai tutto sotto controll
 
 | | Funzione |
 |---|---|
-| 🌍 | **Geolocalizzazione** — paese di origine di ogni IP nella tabella (`CC`) |
-| 📊 | **Grafico a barre ASCII** — aggressività relativa di ogni IP, visiva e immediata |
-| 📈 | **Contatore storico** — quanti IP distinti sono stati bannati dall'inizio (SQLite) |
-| 🏆 | **Top 5 di sempre** — gli IP più aggressivi in assoluto, con barre e paese |
-| 🗺️ | **Mappa geografica** — distribuzione degli attacchi per paese con percentuali |
-| ⏱️ | **Tempo residuo preciso** — letto dal database SQLite di fail2ban, al secondo |
-| 🔧 | **Gestione ban time** — modifica globale o per singolo IP (unban + re-ban) |
-| 🔢 | **Preset pronti** — 1g, 5g, 7g, 10g, 15g, 30g, permanente · oppure input custom |
-| ↕️ | **Ordinamento flessibile** — IP, data ban, numero di tentativi |
+| 🌍 | **Geolocalizzazione** — paese di origine di ogni IP |
+| 📊 | **Grafico a barre ASCII** — aggressività relativa di ogni IP |
+| 📈 | **Contatore storico** — IP distinti bannati dall'inizio (SQLite) |
+| 🏆 | **Top 5 di sempre** — IP più aggressivi con barre e paese |
+| 🗺️ | **Mappa geografica** — distribuzione attacchi per paese con percentuali |
+| ⏱️ | **Tempo residuo preciso** — dal database SQLite, al secondo |
+| 🔧 | **Gestione ban time** — modifica globale o per singolo IP |
+| 🔢 | **Preset pronti** — 1g, 5g, 7g, 10g, 15g, 30g, permanente |
+| ↕️ | **Ordinamento flessibile** — IP, data ban, numero tentativi |
 | 🌐 | **Multilingua IT/EN** — cambia lingua al volo con `[g]` |
-| 🔐 | **Auto root** — si ri-esegue con `sudo` automaticamente |
-| 🔴 | **Allerta attacchi attivi** — indica gli IP che tentano ancora dopo il ban |
+| 🔐 | **Auto root** (TUI) + **API Key auth** (Web) |
+| 🔴 | **Allerta attacchi attivi** — IP che tentano ancora dopo il ban |
+| 🔄 | **Multi-jail** — seleziona jail da gestire (SSH, Synology, Nginx, ...) |
+| 🖥️ | **Web UI** — dashboard moderna con Tailwind CSS e auto-refresh 30s |
+| 🐳 | **Docker** — container non-root con mount dei volumi host |
+| 🎨 | **Tema chiaro/scuro** — toggle nella web UI |
+| 🔒 | **Rate limiting** — protezione API (60 req/min per IP) |
 
 ---
 
 ### 📸 Screenshot
 
-**Dashboard principale:**
-
+**Dashboard principale (TUI):**
 ```
 ==============================================================================
-          FAIL2BAN MANAGER — SSH Protection                            [IT]
+          FAIL2BAN MANAGER — sshd                               [sshd]   [IT]
 ==============================================================================
   10/05/2026 09:15:42
 ==============================================================================
@@ -75,51 +82,25 @@ Nessuna dipendenza esterna. Nessun framework. Avvialo e hai tutto sotto controll
   [2 ]  198.51.100.12    RU  2026-05-08 09:44:17  5g 19h      23  ████░░░░░░
   [3 ]  192.0.2.77       US  2026-05-07 21:05:55  4g 6h       11  ██░░░░░░░░
 
-  [r] Aggiorna          [t] Statistiche avanzate
-  [u] Sbanna un IP      [g] Lingua / Language  →  EN
-  [b] Gestisci ban time [q] Esci
-  [s] Cambia ordinamento
+  [r] Aggiorna              [j] Cambia jail  (sshd)
+  [u] Sbanna un IP          [t] Statistiche avanzate
+  [b] Gestisci ban time     [g] Lingua / Language  →  EN
+  [s] Cambia ordinamento    [q] Esci
   [l] Ultimi eventi dal log
 ```
 
-**Schermata statistiche avanzate `[t]`:**
-
-```
-==============================================================================
-          FAIL2BAN MANAGER — SSH Protection                            [IT]
-==============================================================================
-  10/05/2026 09:16:03
-==============================================================================
-
-  ── STATISTICHE AVANZATE ──
-
-  IP bannati (storico): 214
-
-  TOP 5 IP PIÙ AGGRESSIVI DI SEMPRE  (log corrente)
-  ──────────────────────────────────────────────────────────────────
-  203.0.113.45        CN  ████████████████████   847  China
-  198.51.100.12       RU  ████████████░░░░░░░░   512  Russia
-  45.142.212.100      DE  ████████░░░░░░░░░░░░   341  Germany
-  91.240.118.9        UA  █████░░░░░░░░░░░░░░░   198  Ukraine
-  185.220.101.55      NL  ███░░░░░░░░░░░░░░░░░   104  Netherlands
-
-  DISTRIBUZIONE GEOGRAFICA — BANNATI ATTUALI
-  ──────────────────────────────────────────────────────────────────
-  CN    China                           ████████████████████   47  (57%)
-  RU    Russia                          ██████████░░░░░░░░░░   27  (33%)
-  US    United States                   ████░░░░░░░░░░░░░░░░    8  (10%)
-```
+**Web Dashboard:**
+La web UI offre le stesse funzionalità con un'interfaccia moderna, selettore jail, filtro per paese, ordinamento cliccabile sulle colonne, tema chiaro/scuro e auto-refresh ogni 30 secondi.
 
 ---
 
 ### ⚙️ Prerequisiti
 
-- **Linux** — Debian, Ubuntu, CentOS, Rocky, Alma o qualsiasi distro con systemd
-- **Python 3.6+** — preinstallato su quasi tutte le distro moderne
-- **fail2ban** — installato e attivo con la jail `sshd`
-- **geoip-bin** *(opzionale ma raccomandato)* — per la geolocalizzazione degli IP
-
-> ⚠️ **Senza `geoip-bin`** il programma funziona normalmente, ma la colonna `CC` mostrerà `??` e le funzioni geografiche saranno disabilitate.
+- **Linux** o **Synology DSM** (con fail2ban installato)
+- **Python 3.11+** (per la TUI)
+- **fail2ban** — installato e attivo
+- **geoip-bin** *(opzionale)* — per la geolocalizzazione IP
+- **Docker** *(opzionale)* — per la web app
 
 ---
 
@@ -138,6 +119,13 @@ sudo dnf install epel-release -y && sudo dnf install fail2ban -y
 #### Arch Linux
 ```bash
 sudo pacman -S fail2ban
+```
+
+#### Synology DSM
+fail2ban è disponibile tramite il **Centro Pacchetti Synology** o via **Entware**:
+```bash
+# Via Entware (dopo aver installato entware)
+opkg install fail2ban
 ```
 
 #### Avvia il servizio
@@ -161,36 +149,17 @@ sudo dnf install GeoIP -y
 sudo pacman -S geoip
 ```
 
-Verifica che funzioni:
-```bash
-geoiplookup 8.8.8.8
-# GeoIP Country Edition: US, United States
-```
-
-> 💡 Se non installi `geoip-bin`, f2b-manager continua a funzionare perfettamente — si limiterà a mostrare `??` nella colonna paese.
-
 ---
 
-### 🔧 Configurare fail2ban per SSH
+### 🔧 Configurare fail2ban
 
-Crea il file di configurazione personalizzato (non toccare mai i file `.conf` originali):
-
-```bash
-sudo nano /etc/fail2ban/jail.local
-```
+Crea `/etc/fail2ban/jail.local`:
 
 ```ini
 [DEFAULT]
-# Ignora sempre il tuo IP personale
 ignoreip = 127.0.0.1/8 ::1
-
-# Finestra di osservazione (secondi)
 findtime  = 600
-
-# Tentativi massimi prima del ban
 maxretry  = 5
-
-# Durata ban in secondi (-1 = permanente)
 bantime   = 86400
 
 [sshd]
@@ -198,60 +167,108 @@ enabled  = true
 port     = ssh
 logpath  = %(sshd_log)s
 backend  = %(sshd_backend)s
+
+# Synology DSM (se applicabile)
+[synology-dsm]
+enabled  = true
+logpath  = /var/log/synolog/synolog.log
 ```
 
 ```bash
 sudo systemctl restart fail2ban
-sudo fail2ban-client status sshd   # verifica
 ```
 
 ---
 
-### 🚀 Installazione f2b-manager
+### 🚀 Utilizzo TUI
 
 ```bash
 git clone https://github.com/Pier-86/f2b-manager.git
 cd f2b-manager
-chmod +x f2b-manager.py   # opzionale
-```
-
-Nessuna dipendenza esterna — usa solo la libreria standard Python.
-
----
-
-### ▶️ Utilizzo
-
-```bash
 python3 f2b-manager.py
 ```
 
-Lo script rileva automaticamente se non è root e si ri-esegue con `sudo`.
+Lo script si auto-eleva a root con `sudo` e supporta le variabili d'ambiente:
+- `F2B_JAIL=jail_name` — jail iniziale
+- `F2B_LANG=it|en` — lingua predefinita
 
----
-
-### ⌨️ Comandi
+#### ⌨️ Comandi TUI
 
 | Tasto | Azione |
 |:-----:|--------|
 | `r` | Aggiorna la dashboard |
-| `u` | Sbanna un IP (per numero o indirizzo completo) |
-| `b` | Menu gestione ban time (globale o per singolo IP) |
-| `s` | Cambia ordinamento (IP / data / tentativi) |
-| `l` | Ultimi 20 eventi dal log (Ban / Unban / Found) |
-| `t` | Statistiche avanzate — Top 5 e mappa geografica |
-| `g` | Cambia lingua  IT ↔ EN |
+| `j` | Cambia jail (se multipli configurati) |
+| `u` | Sbanna un IP |
+| `b` | Menu gestione ban time |
+| `s` | Cambia ordinamento |
+| `l` | Ultimi 20 eventi dal log |
+| `t` | Statistiche avanzate |
+| `g` | Cambia lingua IT ↔ EN |
 | `q` | Esci |
+
+---
+
+### 🐳 Deploy Web App (Docker)
+
+#### Con Docker Compose (consigliato)
+
+Crea un file `.env`:
+```bash
+F2B_API_KEY=la-tua-chiave-segreta
+```
+
+Poi:
+```bash
+docker-compose up -d
+```
+
+#### Con Docker direttamente
+```bash
+docker run -d --name f2b-manager-web \
+  -p 8080:8080 \
+  -e F2B_API_KEY=la-tua-chiave-segreta \
+  -e F2B_JAILS=sshd,synology-dsm,nginx-http-auth \
+  -v /var/run/fail2ban:/var/run/fail2ban \
+  -v /var/lib/fail2ban:/var/lib/fail2ban:ro \
+  -v /var/log/fail2ban.log:/var/log/fail2ban.log:ro \
+  -v /var/log/auth.log:/var/log/auth.log:ro \
+  pier86/f2b-manager:latest
+```
+
+#### Variabili d'ambiente
+
+| Variabile | Default | Descrizione |
+|---|---|---|
+| `F2B_JAILS` | `sshd` | Lista jails separata da virgola |
+| `F2B_JAIL` | Primo da `F2B_JAILS` | Jail attiva all'avvio |
+| `F2B_API_KEY` | *(vuoto)* | Se impostata, richiede auth su tutte le API |
+| `F2B_API_RATE_LIMIT` | `60` | Max richieste per finestra |
+| `F2B_API_RATE_WINDOW` | `60` | Finestra in secondi |
+| `F2B_DB` | auto-detect | Path database SQLite |
+| `F2B_LOG` | auto-detect | Path log fail2ban |
+| `F2B_GEOIP_BIN` | `geoiplookup` | Binary per geolocalizzazione |
+
+#### Volumi necessari
+
+| Volume | Descrizione |
+|---|---|
+| `/var/run/fail2ban` | Socket Unix (lettura/scrittura) |
+| `/var/lib/fail2ban` | Database SQLite (sola lettura) |
+| `/var/log/fail2ban.log` | Log fail2ban (sola lettura) |
+| `/var/log/auth.log` | Log auth (opzionale, per SSH) |
 
 ---
 
 ### 🔬 Note tecniche
 
-- Il **tempo residuo** è letto dal database SQLite (`/var/lib/fail2ban/fail2ban.sqlite3`) — preciso al secondo, non stimato.
-- Il cambio ban time per singolo IP: `unban → nuovo bantime → re-ban → ripristino bantime originale`.
-- L'indicatore **🔴 +N** segnala tentativi `Found` registrati *dopo* l'ultimo ban — l'attacco è ancora in corso.
-- Il **grafico a barre** è relativo agli IP attualmente bannati: la barra più piena = IP più aggressivo del gruppo.
-- Il **contatore storico** e il **Top 5** usano il log corrente (`/var/log/fail2ban.log`) — i log ruotati non vengono letti.
-- La **geolocalizzazione** è in cache per tutta la sessione: il lookup avviene una sola volta per IP.
+- Il **modulo condiviso** `f2b_core.py` contiene tutta la logica (jail operations, geo, i18n, parsing), usata sia dalla TUI che dalla web app.
+- Il **tempo residuo** è letto dal database SQLite — preciso al secondo, non stimato.
+- Il cambio ban time per singolo IP: `unban → nuovo bantime → re-ban → ripristino`.
+- L'indicatore **🔴 +N** segnala tentativi `Found` dopo l'ultimo ban — attacco in corso.
+- Il **parsing log è incrementale**: ad ogni refresh vengono lette solo le nuove righe.
+- Rilevamento automatico **Synology**: se rileva `/etc/synoinfo.conf`, cerca i percorsi alternativi.
+- La **geolocalizzazione** è in cache in memoria per l'intera sessione.
+- I test sono in `tests/`: `python3 -m pytest tests/ -v`.
 
 ---
 
@@ -260,15 +277,19 @@ Lo script rileva automaticamente se non è root e si ri-esegue con `sudo`.
 **MIT** — libero di usare, modificare e distribuire.
 
 ---
+
 ---
 
 ## 🇬🇧 English
 
 ### What is f2b-manager?
 
-`f2b-manager` is a **TUI (Terminal User Interface)** tool written in pure Python that lets you manage **fail2ban** in a simple, visual, and immediate way — directly from your server's terminal.
+`f2b-manager` is a complete **fail2ban management** tool with two interfaces:
 
-No external dependencies. No framework. Launch it and you have everything under control.
+- **TUI** (Terminal User Interface) — interactive terminal dashboard, zero dependencies
+- **Web App** — modern browser dashboard with REST API, Docker-ready
+
+Supports **multiple jails** (`sshd`, `synology-dsm`, `nginx-http-auth`, `postfix`, etc.) and runs on **Linux** and **Synology DSM**.
 
 ---
 
@@ -276,221 +297,91 @@ No external dependencies. No framework. Launch it and you have everything under 
 
 | | Feature |
 |---|---|
-| 🌍 | **Geolocation** — country of origin for each IP in the table (`CC`) |
-| 📊 | **ASCII bar chart** — relative aggressiveness of each IP, visual and immediate |
-| 📈 | **Historical counter** — total distinct IPs ever banned (SQLite) |
-| 🏆 | **All-time Top 5** — most aggressive IPs ever, with bars and country |
+| 🌍 | **Geolocation** — country of origin for each IP |
+| 📊 | **ASCII bar chart** — relative aggressiveness of each IP |
+| 📈 | **Historical counter** — total distinct IPs ever banned |
+| 🏆 | **All-time Top 5** — most aggressive IPs with bars and country |
 | 🗺️ | **Geo map** — attack distribution by country with percentages |
-| ⏱️ | **Precise remaining time** — read from fail2ban's SQLite database, to the second |
+| ⏱️ | **Precise remaining time** — from fail2ban's SQLite DB |
 | 🔧 | **Ban time management** — global or per-IP (unban + re-ban) |
-| 🔢 | **Ready presets** — 1d, 5d, 7d, 10d, 15d, 30d, permanent · or custom input |
+| 🔢 | **Ready presets** — 1d, 5d, 7d, 10d, 15d, 30d, permanent |
 | ↕️ | **Flexible sorting** — IP, ban date, number of attempts |
-| 🌐 | **Bilingual IT/EN** — switch language on the fly with `[g]` |
-| 🔐 | **Auto root** — re-runs itself with `sudo` automatically |
-| 🔴 | **Active attack alert** — flags IPs still attempting after the ban |
+| 🌐 | **Bilingual IT/EN** — switch language on the fly |
+| 🔐 | **Auto root** (TUI) + **API Key auth** (Web) |
+| 🔴 | **Active attack alert** — flags IPs still attempting after ban |
+| 🔄 | **Multi-jail** — select jail to manage (SSH, Synology, Nginx...) |
+| 🖥️ | **Web UI** — dark modern dashboard with Tailwind CSS, 30s auto-refresh |
+| 🐳 | **Docker** — non-root container with host volume mounts |
+| 🎨 | **Light/Dark theme** — toggle in web UI |
+| 🔒 | **Rate limiting** — API protection (60 req/min per IP) |
 
 ---
 
-### 📸 Screenshot
+### 🚀 Quick start
 
-**Main dashboard:**
-
-```
-==============================================================================
-          FAIL2BAN MANAGER — SSH Protection                            [EN]
-==============================================================================
-  10/05/2026 09:15:42
-==============================================================================
-
-  Total failed attempts    : 1482
-  Currently banned IPs     : 3
-  IPs banned (all time)    : 214
-  Ban time (default)       : 7d
-  Sort order               : by ban date (most recent first)
-
-  #     IP               CC  Last ban             Remaining  Tot  Attempts
-  ──────────────────────────────────────────────────────────────────────────
-  [1 ]  203.0.113.45     CN  2026-05-09 13:10:01  6d 22h      47  ████████░░  🔴 +3
-  [2 ]  198.51.100.12    RU  2026-05-08 09:44:17  5d 19h      23  ████░░░░░░
-  [3 ]  192.0.2.77       US  2026-05-07 21:05:55  4d 6h       11  ██░░░░░░░░
-
-  [r] Refresh             [t] Advanced statistics
-  [u] Unban an IP         [g] Lingua / Language  →  IT
-  [b] Manage ban time     [q] Quit
-  [s] Change sort order
-  [l] Last log events
-```
-
-**Advanced statistics screen `[t]`:**
-
-```
-==============================================================================
-          FAIL2BAN MANAGER — SSH Protection                            [EN]
-==============================================================================
-  10/05/2026 09:16:03
-==============================================================================
-
-  ── ADVANCED STATISTICS ──
-
-  IPs banned (all time): 214
-
-  TOP 5 MOST AGGRESSIVE IPs OF ALL TIME  (current log)
-  ──────────────────────────────────────────────────────────────────
-  203.0.113.45        CN  ████████████████████   847  China
-  198.51.100.12       RU  ████████████░░░░░░░░   512  Russia
-  45.142.212.100      DE  ████████░░░░░░░░░░░░   341  Germany
-  91.240.118.9        UA  █████░░░░░░░░░░░░░░░   198  Ukraine
-  185.220.101.55      NL  ███░░░░░░░░░░░░░░░░░   104  Netherlands
-
-  GEO BREAKDOWN — CURRENTLY BANNED IPs
-  ──────────────────────────────────────────────────────────────────
-  CN    China                           ████████████████████   47  (57%)
-  RU    Russia                          ██████████░░░░░░░░░░   27  (33%)
-  US    United States                   ████░░░░░░░░░░░░░░░░    8  (10%)
-```
-
----
-
-### ⚙️ Prerequisites
-
-- **Linux** — Debian, Ubuntu, CentOS, Rocky, Alma or any systemd-based distro
-- **Python 3.6+** — pre-installed on virtually all modern distros
-- **fail2ban** — installed and running with the `sshd` jail active
-- **geoip-bin** *(optional but recommended)* — for IP geolocation
-
-> ⚠️ **Without `geoip-bin`** the program works normally, but the `CC` column will show `??` and geo features will be disabled.
-
----
-
-### 📦 Install fail2ban
-
-#### Debian / Ubuntu
-```bash
-sudo apt update && sudo apt install fail2ban -y
-```
-
-#### CentOS / Rocky Linux / AlmaLinux
-```bash
-sudo dnf install epel-release -y && sudo dnf install fail2ban -y
-```
-
-#### Arch Linux
-```bash
-sudo pacman -S fail2ban
-```
-
-#### Start the service
-```bash
-sudo systemctl enable --now fail2ban
-sudo systemctl status fail2ban
-```
-
----
-
-### 🌍 Install geoip-bin (geolocation)
-
-```bash
-# Debian / Ubuntu
-sudo apt install geoip-bin -y
-
-# CentOS / Rocky / Alma
-sudo dnf install GeoIP -y
-
-# Arch
-sudo pacman -S geoip
-```
-
-Verify it works:
-```bash
-geoiplookup 8.8.8.8
-# GeoIP Country Edition: US, United States
-```
-
-> 💡 If you skip `geoip-bin`, f2b-manager keeps working perfectly — it will simply show `??` in the country column.
-
----
-
-### 🔧 Configure fail2ban for SSH
-
-Create a custom config file (never edit the original `.conf` files):
-
-```bash
-sudo nano /etc/fail2ban/jail.local
-```
-
-```ini
-[DEFAULT]
-# Always ignore your own IP
-ignoreip = 127.0.0.1/8 ::1
-
-# Observation window (seconds)
-findtime  = 600
-
-# Max attempts before ban
-maxretry  = 5
-
-# Ban duration in seconds (-1 = permanent)
-bantime   = 86400
-
-[sshd]
-enabled  = true
-port     = ssh
-logpath  = %(sshd_log)s
-backend  = %(sshd_backend)s
-```
-
-```bash
-sudo systemctl restart fail2ban
-sudo fail2ban-client status sshd   # verify
-```
-
----
-
-### 🚀 Install f2b-manager
-
+#### TUI (host)
 ```bash
 git clone https://github.com/Pier-86/f2b-manager.git
 cd f2b-manager
-chmod +x f2b-manager.py   # optional
-```
-
-No external dependencies — pure Python standard library only.
-
----
-
-### ▶️ Usage
-
-```bash
 python3 f2b-manager.py
 ```
 
-The script automatically detects if it's not running as root and re-launches itself with `sudo`.
+#### Web (Docker)
+```bash
+docker run -d --name f2b-manager-web \
+  -p 8080:8080 \
+  -e F2B_API_KEY=your-secret-key \
+  -v /var/run/fail2ban:/var/run/fail2ban \
+  -v /var/lib/fail2ban:/var/lib/fail2ban:ro \
+  -v /var/log/fail2ban.log:/var/log/fail2ban.log:ro \
+  pier86/f2b-manager:latest
+```
+
+Then open http://your-server:8080.
 
 ---
 
-### ⌨️ Keyboard controls
+#### Keyboard controls (TUI)
 
 | Key | Action |
 |:---:|--------|
-| `r` | Refresh the dashboard |
-| `u` | Unban an IP (by number or full address) |
-| `b` | Ban time menu (global or per-IP) |
-| `s` | Change sort order (IP / date / attempts) |
-| `l` | Last 20 log events (Ban / Unban / Found) |
-| `t` | Advanced statistics — Top 5 and geo map |
-| `g` | Switch language  IT ↔ EN |
+| `r` | Refresh dashboard |
+| `j` | Switch jail (if multiple configured) |
+| `u` | Unban an IP |
+| `b` | Ban time menu |
+| `s` | Change sort order |
+| `l` | Last 20 log events |
+| `t` | Advanced statistics |
+| `g` | Switch language IT ↔ EN |
 | `q` | Quit |
+
+---
+
+### 🔧 Configuration via environment variables
+
+| Variable | Default | Description |
+|---|---|---|
+| `F2B_JAILS` | `sshd` | Comma-separated list of jails |
+| `F2B_JAIL` | First from `F2B_JAILS` | Active jail at startup |
+| `F2B_API_KEY` | *(empty)* | If set, requires auth on all API endpoints |
+| `F2B_API_RATE_LIMIT` | `60` | Max requests per window |
+| `F2B_API_RATE_WINDOW` | `60` | Window in seconds |
+| `F2B_DB` | auto-detect | SQLite database path |
+| `F2B_LOG` | auto-detect | fail2ban log path |
+| `F2B_GEOIP_BIN` | `geoiplookup` | Geolocation binary |
 
 ---
 
 ### 🔬 Technical notes
 
-- **Remaining time** is read from the SQLite database (`/var/lib/fail2ban/fail2ban.sqlite3`) — accurate to the second, not estimated.
-- Per-IP ban time change: `unban → set new bantime → re-ban → restore original bantime`.
-- The **🔴 +N** indicator flags `Found` events recorded *after* the last ban — the attack is still ongoing.
-- The **bar chart** is relative to currently banned IPs: the fullest bar = most aggressive IP in the current group.
-- The **historical counter** and **Top 5** use the current log (`/var/log/fail2ban.log`) — rotated logs are not read.
-- **Geolocation** is cached for the entire session: lookup runs only once per IP.
+- **Shared module** `f2b_core.py` contains all common logic, used by both TUI and web app.
+- **Remaining time** is read from fail2ban's SQLite DB — accurate to the second.
+- Per-IP ban time change: `unban → set bantime → re-ban → restore original`.
+- **🔴 +N** indicator flags `Found` events after the last ban — attack still ongoing.
+- **Incremental log parsing**: only new lines are read on each refresh.
+- **Synology auto-detection**: if `/etc/synoinfo.conf` exists, alternative paths are probed.
+- **Geolocation** is cached in memory for the entire session.
+- Tests in `tests/`: `python3 -m pytest tests/ -v`.
 
 ---
 

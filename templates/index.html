@@ -1,0 +1,503 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>f2b-manager Web</title>
+  <script>
+    if (localStorage.getItem('theme') === 'light') {
+      document.documentElement.classList.remove('dark');
+    } else {
+      document.documentElement.classList.add('dark');
+    }
+  </script>
+  <link rel="stylesheet" href="/static/tailwind.min.css" id="tailwind-css" />
+  <style>
+    .flag { font-size: 1.2rem; line-height: 1; }
+    .badge-perm { background: #7f1d1d; color: #fca5a5; }
+    .badge-high { background: #78350f; color: #fcd34d; }
+    .badge-low  { background: #14532d; color: #86efac; }
+    .spin { animation: spin 1s linear infinite; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    th.sortable { cursor: pointer; user-select: none; white-space: nowrap; }
+    th.sortable:hover { color: #d1d5db; }
+    th.sort-active { color: #a78bfa; }
+    .sort-icon { display: inline-block; margin-left: 4px; opacity: 0.4; font-style: normal; }
+    th.sort-active .sort-icon { opacity: 1; color: #a78bfa; }
+    .platform-badge {
+      display: inline-block;
+      padding: 1px 6px;
+      border-radius: 4px;
+      font-size: 10px;
+      font-weight: 600;
+      text-transform: uppercase;
+    }
+    .platform-linux { background: #1e3a5f; color: #93c5fd; }
+    .platform-synology { background: #5b2e1e; color: #fdba74; }
+  </style>
+</head>
+<body class="bg-gray-950 text-gray-100 min-h-screen font-mono dark">
+
+  <div id="auth-overlay" class="hidden fixed inset-0 bg-black/80 flex items-center justify-center z-50">
+    <div class="bg-gray-900 border border-gray-700 rounded-xl p-6 w-96 shadow-2xl">
+      <h3 class="text-lg font-bold mb-4 text-white">Autenticazione richiesta</h3>
+      <p class="text-sm text-gray-400 mb-4">Inserisci la API Key per accedere al dashboard.</p>
+      <input id="auth-key-input" type="password" placeholder="API Key"
+        class="w-full bg-gray-800 border border-gray-700 rounded px-3 py-2 text-white text-sm focus:outline-none focus:border-purple-500 mb-4" />
+      <button onclick="submitAuth()"
+        class="w-full px-4 py-2 rounded bg-purple-700 hover:bg-purple-600 text-white text-sm font-semibold transition">Accedi</button>
+    </div>
+  </div>
+
+  <header class="border-b border-gray-800 px-6 py-4 flex items-center justify-between flex-wrap gap-3">
+    <div class="flex items-center gap-3">
+      <span class="text-2xl">&#x1f6e1;&#xfe0f;</span>
+      <div>
+        <div class="flex items-center gap-2">
+          <h1 class="text-xl font-bold text-white">f2b-manager</h1>
+          <span id="platform-badge" class="platform-badge platform-linux">Linux</span>
+        </div>
+        <p class="text-xs text-gray-500">fail2ban multi-jail dashboard</p>
+      </div>
+    </div>
+    <div class="flex items-center gap-3 text-sm text-gray-400 flex-wrap">
+      <select id="jail-selector" onchange="switchJail()"
+        class="bg-gray-800 border border-gray-700 rounded px-3 py-1.5 text-gray-300 text-sm focus:outline-none focus:border-purple-500 min-w-[140px]">
+        <option value="">Caricamento jails...</option>
+      </select>
+      <span id="last-update">—</span>
+      <button onclick="fetchStatus()"
+        class="px-3 py-1.5 rounded bg-gray-800 hover:bg-gray-700 text-gray-300 border border-gray-700 transition text-sm">
+        &#x21bb;
+      </button>
+      <button id="theme-toggle" onclick="toggleTheme()"
+        class="px-3 py-1.5 rounded bg-gray-800 hover:bg-gray-700 text-gray-300 border border-gray-700 transition text-base"
+        title="Cambia tema">&#x2600;&#xfe0f;</button>
+      <div class="flex items-center gap-1">
+        <span class="w-2 h-2 rounded-full bg-green-500 inline-block" id="status-dot"></span>
+        <span class="text-xs" id="status-txt">live</span>
+      </div>
+    </div>
+  </header>
+
+  <main class="max-w-7xl mx-auto px-6 py-6 space-y-6">
+
+    <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+      <div class="bg-gray-900 border border-gray-800 rounded-xl p-4">
+        <p class="text-xs text-gray-500 uppercase tracking-wider mb-1">Bannati ora</p>
+        <p class="text-3xl font-bold text-red-400" id="stat-banned">—</p>
+      </div>
+      <div class="bg-gray-900 border border-gray-800 rounded-xl p-4">
+        <p class="text-xs text-gray-500 uppercase tracking-wider mb-1">Tentativi totali</p>
+        <p class="text-3xl font-bold text-yellow-400" id="stat-failed">—</p>
+      </div>
+      <div class="bg-gray-900 border border-gray-800 rounded-xl p-4">
+        <p class="text-xs text-gray-500 uppercase tracking-wider mb-1">IP unici (storico)</p>
+        <p class="text-3xl font-bold text-blue-400" id="stat-historical">—</p>
+      </div>
+      <div class="bg-gray-900 border border-gray-800 rounded-xl p-4">
+        <p class="text-xs text-gray-500 uppercase tracking-wider mb-1">Ban time default</p>
+        <p class="text-xl font-bold text-purple-400" id="stat-bantime">—</p>
+        <button onclick="openBantimeModal()"
+          class="mt-2 text-xs text-gray-500 hover:text-purple-400 underline transition">modifica</button>
+      </div>
+    </div>
+
+    <div class="bg-gray-900 border border-gray-800 rounded-xl overflow-hidden">
+      <div class="px-5 py-3 border-b border-gray-800 flex items-center justify-between gap-4 flex-wrap">
+        <h2 class="text-sm font-semibold text-gray-300">
+          <span id="jail-display">&#x1f6e1;&#xfe0f;</span>
+          <span id="jail-name-display">IP attualmente bannati</span>
+        </h2>
+        <div class="flex items-center gap-2">
+          <span class="text-xs text-gray-500">Paese:</span>
+          <select id="country-filter" onchange="applyCountryFilter()"
+            class="bg-gray-800 border border-gray-700 rounded px-2 py-1 text-xs text-gray-300 focus:outline-none focus:border-purple-500 min-w-[140px]">
+            <option value="">Tutti</option>
+          </select>
+          <button onclick="clearCountryFilter()"
+            class="text-xs text-gray-600 hover:text-gray-400 transition" title="Rimuovi filtro">&#x2715;</button>
+          <span class="text-xs text-gray-700 ml-2">Auto-refresh ogni 30s</span>
+        </div>
+      </div>
+      <div class="overflow-x-auto">
+        <table class="w-full text-sm">
+          <thead>
+            <tr class="text-left text-xs text-gray-500 uppercase tracking-wider border-b border-gray-800">
+              <th class="px-5 py-3 sortable" onclick="sortBy('ip')" data-col="ip">IP <i class="sort-icon">&#x21c5;</i></th>
+              <th class="px-5 py-3 sortable" onclick="sortBy('country')" data-col="country">Paese <i class="sort-icon">&#x21c5;</i></th>
+              <th class="px-5 py-3 sortable" onclick="sortBy('remaining')" data-col="remaining">Tempo rimanente <i class="sort-icon">&#x21c5;</i></th>
+              <th class="px-5 py-3 sortable" onclick="sortBy('attempts')" data-col="attempts">Tentativi <i class="sort-icon">&#x21c5;</i></th>
+              <th class="px-5 py-3 sortable" onclick="sortBy('last_ban')" data-col="last_ban">Ultimo ban <i class="sort-icon">&#x21c5;</i></th>
+              <th class="px-5 py-3 text-right text-gray-500 uppercase text-xs tracking-wider">Azione</th>
+            </tr>
+          </thead>
+          <tbody id="bans-tbody">
+            <tr>
+              <td colspan="6" class="px-5 py-8 text-center text-gray-600">Caricamento...</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+  </main>
+
+  <div id="bantime-modal" class="hidden fixed inset-0 bg-black/70 flex items-center justify-center z-50">
+    <div class="bg-gray-900 border border-gray-700 rounded-xl p-6 w-80 shadow-2xl">
+      <h3 class="text-lg font-bold mb-4 text-white">Modifica ban time</h3>
+      <p class="text-xs text-gray-500 mb-3" id="bantime-jail-label">Jail: sshd</p>
+      <div class="space-y-3 mb-5">
+        <div class="grid grid-cols-3 gap-2">
+          <button onclick="setPreset(3600)"   class="px-2 py-1 text-xs rounded bg-gray-800 hover:bg-gray-700 border border-gray-700 text-gray-300 transition">1 ora</button>
+          <button onclick="setPreset(86400)"  class="px-2 py-1 text-xs rounded bg-gray-800 hover:bg-gray-700 border border-gray-700 text-gray-300 transition">1 giorno</button>
+          <button onclick="setPreset(604800)" class="px-2 py-1 text-xs rounded bg-gray-800 hover:bg-gray-700 border border-gray-700 text-gray-300 transition">1 settimana</button>
+        </div>
+        <div class="flex items-center gap-2">
+          <input id="bantime-input" type="number" min="60" placeholder="Secondi"
+            class="flex-1 bg-gray-800 border border-gray-700 rounded px-3 py-2 text-white text-sm focus:outline-none focus:border-purple-500" />
+          <span class="text-gray-500 text-xs">sec</span>
+        </div>
+        <p id="bantime-preview" class="text-xs text-gray-500"></p>
+      </div>
+      <div class="flex gap-2">
+        <button onclick="closeBantimeModal()"
+          class="flex-1 px-4 py-2 rounded bg-gray-800 hover:bg-gray-700 text-gray-300 text-sm transition">Annulla</button>
+        <button onclick="submitBantime()"
+          class="flex-1 px-4 py-2 rounded bg-purple-700 hover:bg-purple-600 text-white text-sm font-semibold transition">Applica</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="unban-modal" class="hidden fixed inset-0 bg-black/70 flex items-center justify-center z-50">
+    <div class="bg-gray-900 border border-gray-700 rounded-xl p-6 w-80 shadow-2xl">
+      <h3 class="text-lg font-bold mb-2 text-white">Conferma unban</h3>
+      <p class="text-sm text-gray-400 mb-5">Rimuovere il ban per <span id="unban-ip-label" class="text-white font-semibold"></span>?</p>
+      <p class="text-xs text-gray-600 mb-4" id="unban-jail-label">Jail: sshd</p>
+      <div class="flex gap-2">
+        <button onclick="closeUnbanModal()"
+          class="flex-1 px-4 py-2 rounded bg-gray-800 hover:bg-gray-700 text-gray-300 text-sm transition">Annulla</button>
+        <button onclick="confirmUnban()"
+          class="flex-1 px-4 py-2 rounded bg-red-700 hover:bg-red-600 text-white text-sm font-semibold transition">Unban</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    let currentUnbanIp = null;
+    let refreshTimer = null;
+    let currentData = null;
+    let countryFilter = '';
+    let sortState = { col: 'remaining', dir: 'desc' };
+    let apiKey = localStorage.getItem('f2b_api_key') || '';
+    let authRequired = false;
+    let activeJail = '';
+    let availableJails = [];
+
+    function apiHeaders() {
+      const h = { 'Content-Type': 'application/json' };
+      if (apiKey) h['X-API-Key'] = apiKey;
+      return h;
+    }
+
+    async function apiFetch(url, opts = {}) {
+      opts.headers = { ...apiHeaders(), ...opts.headers };
+      const resp = await fetch(url, opts);
+      if (resp.status === 401 && !authRequired) {
+        authRequired = true;
+        document.getElementById('auth-overlay').classList.remove('hidden');
+        return null;
+      }
+      if (resp.status === 401) {
+        document.getElementById('auth-overlay').classList.remove('hidden');
+        return null;
+      }
+      return resp;
+    }
+
+    function submitAuth() {
+      const key = document.getElementById('auth-key-input').value.trim();
+      if (!key) return;
+      apiKey = key;
+      localStorage.setItem('f2b_api_key', key);
+      document.getElementById('auth-overlay').classList.add('hidden');
+      loadJails();
+    }
+
+    function toggleTheme() {
+      const html = document.documentElement;
+      const btn = document.getElementById('theme-toggle');
+      if (html.classList.contains('dark')) {
+        html.classList.remove('dark');
+        localStorage.setItem('theme', 'light');
+        btn.textContent = '\u{1f319}';
+      } else {
+        html.classList.add('dark');
+        localStorage.setItem('theme', 'dark');
+        btn.textContent = '\u2600\ufe0f';
+      }
+    }
+
+    if (localStorage.getItem('theme') === 'light') {
+      document.getElementById('theme-toggle').textContent = '\u{1f319}';
+    }
+
+    async function loadJails() {
+      try {
+        const resp = await apiFetch('/api/jails');
+        if (!resp) return;
+        const data = await resp.json();
+        availableJails = data.jails;
+        const sel = document.getElementById('jail-selector');
+        sel.innerHTML = data.jails.map(j =>
+          `<option value="${j.jail}" ${j.jail === data.active ? 'selected' : ''}>${j.icon || '\u{1f6e1}\ufe0f'} ${j.name || j.jail}</option>`
+        ).join('');
+        activeJail = data.active;
+        const badge = document.getElementById('platform-badge');
+        if (data.platform === 'synology') {
+          badge.textContent = 'Synology';
+          badge.className = 'platform-badge platform-synology';
+        } else {
+          badge.textContent = 'Linux';
+          badge.className = 'platform-badge platform-linux';
+        }
+        fetchStatus();
+      } catch (e) {
+        console.error('Failed to load jails', e);
+      }
+    }
+
+    function switchJail() {
+      activeJail = document.getElementById('jail-selector').value;
+      if (!activeJail) return;
+      fetchStatus();
+    }
+
+    function formatDuration(seconds) {
+      if (seconds === -1) return 'Permanente';
+      if (seconds === 0) return 'Scaduto';
+      const h = Math.floor(seconds / 3600);
+      const m = Math.floor((seconds % 3600) / 60);
+      const s = seconds % 60;
+      if (h > 0) return `${h}h ${m}m ${s}s`;
+      if (m > 0) return `${m}m ${s}s`;
+      return `${s}s`;
+    }
+
+    function remainingBadge(seconds) {
+      if (seconds === -1) return 'badge-perm';
+      if (seconds < 3600) return 'badge-low';
+      return 'badge-high';
+    }
+
+    function flagEmoji(cc) {
+      if (!cc || cc === '??') return '\u{1f310}';
+      return cc.toUpperCase().replace(/./g, c =>
+        String.fromCodePoint(c.charCodeAt(0) + 127397)
+      );
+    }
+
+    function sortBy(col) {
+      if (sortState.col === col) {
+        sortState.dir = sortState.dir === 'asc' ? 'desc' : 'asc';
+      } else {
+        sortState.col = col;
+        sortState.dir = ['remaining', 'attempts'].includes(col) ? 'desc' : 'asc';
+      }
+      updateSortHeaders();
+      if (currentData) renderBans(currentData.bans);
+    }
+
+    function updateSortHeaders() {
+      document.querySelectorAll('th[data-col]').forEach(th => {
+        const col = th.dataset.col;
+        const icon = th.querySelector('.sort-icon');
+        th.classList.toggle('sort-active', col === sortState.col);
+        if (col === sortState.col) {
+          icon.textContent = sortState.dir === 'asc' ? '\u2191' : '\u2193';
+        } else {
+          icon.textContent = '\u21c5';
+        }
+      });
+    }
+
+    function sortedBans(bans) {
+      const { col, dir } = sortState;
+      const mult = dir === 'asc' ? 1 : -1;
+      return [...bans].sort((a, b) => {
+        let va, vb;
+        switch (col) {
+          case 'ip':
+            va = a.ip.split('.').map(n => parseInt(n).toString().padStart(3, '0')).join('');
+            vb = b.ip.split('.').map(n => parseInt(n).toString().padStart(3, '0')).join('');
+            return mult * va.localeCompare(vb);
+          case 'country':
+            va = a.country || a.country_code || '';
+            vb = b.country || b.country_code || '';
+            return mult * va.localeCompare(vb);
+          case 'remaining':
+            va = a.remaining_seconds === -1 ? Infinity : a.remaining_seconds;
+            vb = b.remaining_seconds === -1 ? Infinity : b.remaining_seconds;
+            return mult * (va - vb);
+          case 'attempts':
+            return mult * (a.total_found - b.total_found);
+          case 'last_ban':
+            if (!a.last_ban && !b.last_ban) return 0;
+            if (!a.last_ban) return 1;
+            if (!b.last_ban) return -1;
+            return mult * a.last_ban.localeCompare(b.last_ban);
+          default:
+            return 0;
+        }
+      });
+    }
+
+    async function fetchStatus() {
+      if (!activeJail) return;
+      const dot = document.getElementById('status-dot');
+      const txt = document.getElementById('status-txt');
+      dot.className = 'w-2 h-2 rounded-full bg-yellow-400 inline-block';
+      txt.textContent = 'aggiornamento...';
+      try {
+        const resp = await apiFetch(`/api/status?jail=${encodeURIComponent(activeJail)}`);
+        if (!resp) return;
+        if (!resp.ok) throw new Error(resp.statusText);
+        const data = await resp.json();
+        currentData = data;
+        renderStatus(data);
+        document.getElementById('last-update').textContent = 'Aggiornato: ' + data.updated_at;
+        dot.className = 'w-2 h-2 rounded-full bg-green-500 inline-block';
+        txt.textContent = 'live';
+      } catch (e) {
+        dot.className = 'w-2 h-2 rounded-full bg-red-500 inline-block';
+        txt.textContent = 'errore';
+      }
+    }
+
+    function renderStatus(data) {
+      document.getElementById('jail-display').textContent = data.jail_icon || '\u{1f6e1}\ufe0f';
+      document.getElementById('jail-name-display').textContent = data.jail_name + ' \u2014 IP attualmente bannati';
+      document.getElementById('stat-banned').textContent = data.banned_count;
+      document.getElementById('stat-failed').textContent = data.total_failed.toLocaleString();
+      document.getElementById('stat-historical').textContent = data.historical_unique.toLocaleString();
+      document.getElementById('stat-bantime').textContent = data.bantime_label;
+      renderBans(data.bans);
+    }
+
+    function updateCountryDropdown(bans) {
+      const sel = document.getElementById('country-filter');
+      const prev = sel.value;
+      const countries = [...new Map(
+        bans.map(b => [b.country_code, b.country || b.country_code])
+      ).entries()].sort((a, b) => (a[1] || '').localeCompare(b[1] || ''));
+      sel.innerHTML = '<option value="">Tutti</option>' +
+        countries.map(([cc, name]) =>
+          `<option value="${cc}" ${cc === prev ? 'selected' : ''}>${flagEmoji(cc)} ${name}</option>`
+        ).join('');
+    }
+
+    function applyCountryFilter() {
+      countryFilter = document.getElementById('country-filter').value;
+      if (currentData) renderBans(currentData.bans);
+    }
+
+    function clearCountryFilter() {
+      countryFilter = '';
+      document.getElementById('country-filter').value = '';
+      if (currentData) renderBans(currentData.bans);
+    }
+
+    function renderBans(bans) {
+      updateCountryDropdown(bans);
+      const filtered = countryFilter ? bans.filter(b => b.country_code === countryFilter) : bans;
+      const tbody = document.getElementById('bans-tbody');
+      if (!filtered || filtered.length === 0) {
+        const msg = countryFilter
+          ? `Nessun IP bannato da <strong>${countryFilter}</strong>`
+          : 'Nessun IP bannato al momento';
+        tbody.innerHTML = `<tr><td colspan="6" class="px-5 py-10 text-center text-gray-600">${msg}</td></tr>`;
+        return;
+      }
+      tbody.innerHTML = sortedBans(filtered).map(ban => `
+        <tr class="border-b border-gray-800/50 hover:bg-gray-800/30 transition">
+          <td class="px-5 py-3 font-semibold text-white">${ban.ip}</td>
+          <td class="px-5 py-3">
+            <span class="flag">${flagEmoji(ban.country_code)}</span>
+            <span class="text-gray-400 text-xs ml-1">${ban.country || ban.country_code}</span>
+          </td>
+          <td class="px-5 py-3">
+            <span class="px-2 py-0.5 rounded text-xs font-semibold ${remainingBadge(ban.remaining_seconds)}">
+              ${ban.remaining_label}
+            </span>
+          </td>
+          <td class="px-5 py-3 text-gray-300">${ban.total_found.toLocaleString()}</td>
+          <td class="px-5 py-3 text-gray-500 text-xs">${ban.last_ban || '—'}</td>
+          <td class="px-5 py-3 text-right">
+            <button onclick="openUnbanModal('${ban.ip}')"
+              class="px-3 py-1 text-xs rounded bg-red-900/50 hover:bg-red-800 text-red-300 border border-red-800/50 transition">Unban</button>
+          </td>
+        </tr>
+      `).join('');
+    }
+
+    function openUnbanModal(ip) {
+      currentUnbanIp = ip;
+      document.getElementById('unban-ip-label').textContent = ip;
+      document.getElementById('unban-jail-label').textContent = 'Jail: ' + activeJail;
+      document.getElementById('unban-modal').classList.remove('hidden');
+    }
+    function closeUnbanModal() {
+      document.getElementById('unban-modal').classList.add('hidden');
+      currentUnbanIp = null;
+    }
+    async function confirmUnban() {
+      if (!currentUnbanIp) return;
+      try {
+        await apiFetch(`/api/unban/${currentUnbanIp}?jail=${encodeURIComponent(activeJail)}`, { method: 'POST' });
+      } catch (e) { alert('Errore di rete'); }
+      closeUnbanModal();
+      await fetchStatus();
+    }
+
+    function openBantimeModal() {
+      document.getElementById('bantime-jail-label').textContent = 'Jail: ' + activeJail;
+      document.getElementById('bantime-modal').classList.remove('hidden');
+    }
+    function closeBantimeModal() {
+      document.getElementById('bantime-modal').classList.add('hidden');
+    }
+    function setPreset(s) {
+      document.getElementById('bantime-input').value = s;
+      document.getElementById('bantime-preview').textContent = '\u2192 ' + formatDuration(s);
+    }
+    document.addEventListener('DOMContentLoaded', () => {
+      document.getElementById('bantime-input').addEventListener('input', e => {
+        const s = parseInt(e.target.value);
+        document.getElementById('bantime-preview').textContent = isNaN(s) ? '' : '\u2192 ' + formatDuration(s);
+      });
+      updateSortHeaders();
+    });
+    async function submitBantime() {
+      const s = parseInt(document.getElementById('bantime-input').value);
+      if (isNaN(s) || s < 60) { alert('Minimo 60 secondi'); return; }
+      try {
+        const resp = await apiFetch(`/api/bantime?jail=${encodeURIComponent(activeJail)}`, {
+          method: 'POST',
+          body: JSON.stringify({ seconds: s }),
+        });
+        if (!resp) return;
+        if (!resp.ok) { const e = await resp.json(); alert('Errore: ' + e.detail); return; }
+      } catch (e) { alert('Errore di rete'); return; }
+      closeBantimeModal();
+      await fetchStatus();
+    }
+
+    function scheduleRefresh() {
+      clearTimeout(refreshTimer);
+      refreshTimer = setTimeout(async () => { await fetchStatus(); scheduleRefresh(); }, 30000);
+    }
+
+    loadJails().then(scheduleRefresh);
+  </script>
+</body>
+</html>
