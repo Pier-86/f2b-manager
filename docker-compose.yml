@@ -1,6 +1,6 @@
 services:
   f2b-web:
-    image: pier86/f2b-manager:latest
+    image: slashino/f2b-manager:latest
     build: .
     container_name: f2b-manager-web
     restart: unless-stopped

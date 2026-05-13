@@ -6,7 +6,7 @@
 
 [![Python](https://img.shields.io/badge/Python-3.11%2B-3776AB?logo=python&logoColor=white&style=for-the-badge)](https://python.org)
 [![FastAPI](https://img.shields.io/badge/FastAPI-0.115-009688?logo=fastapi&logoColor=white&style=for-the-badge)](https://fastapi.tiangolo.com)
-[![Docker](https://img.shields.io/badge/Docker-ready-2496ED?logo=docker&logoColor=white&style=for-the-badge)](https://hub.docker.com/r/pier86/f2b-manager)
+[![Docker](https://img.shields.io/badge/Docker-ready-2496ED?logo=docker&logoColor=white&style=for-the-badge)](https://hub.docker.com/r/slashino/f2b-manager)
 [![Tests](https://img.shields.io/badge/Tests-65%20passed-22c55e?logo=pytest&logoColor=white&style=for-the-badge)]()
 [![License](https://img.shields.io/badge/License-MIT-f59e0b?style=for-the-badge)](LICENSE)
 
@@ -322,7 +322,7 @@ In Coolify: **New Resource → Docker Compose (Empty)**
 ```yaml
 services:
   f2b-web:
-    image: pier86/f2b-manager:latest
+    image: slashino/f2b-manager:latest
     restart: unless-stopped
     environment:
       - F2B_JAILS=sshd
@@ -396,7 +396,7 @@ docker run -d \
   -v /var/lib/fail2ban:/var/lib/fail2ban:ro \
   -v /var/log/fail2ban.log:/var/log/fail2ban.log:ro \
   -v /var/log/auth.log:/var/log/auth.log:ro \
-  pier86/f2b-manager:latest
+  slashino/f2b-manager:latest
 ```
 
 ---
@@ -609,7 +609,7 @@ docker run -d \
   -v /var/run/fail2ban:/var/run/fail2ban \
   -v /var/lib/fail2ban:/var/lib/fail2ban:ro \
   -v /var/log/fail2ban.log:/var/log/fail2ban.log:ro \
-  pier86/f2b-manager:latest
+  slashino/f2b-manager:latest
 ```
 
 Open `http://your-server:8080`.
@@ -629,7 +629,7 @@ In Coolify: **New Resource → Docker Compose (Empty)**
 ```yaml
 services:
   f2b-web:
-    image: pier86/f2b-manager:latest
+    image: slashino/f2b-manager:latest
     restart: unless-stopped
     environment:
       - F2B_JAILS=sshd
