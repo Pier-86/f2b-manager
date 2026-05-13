@@ -4,14 +4,16 @@ set -euo pipefail
 IMAGE_NAME="f2b-manager"
 DOCKER_USER="${DOCKER_USER:-slashino}"
 TAG="${1:-latest}"
-PLATFORMS="${PLATFORMS:-linux/amd64,linux/arm64}"
 BUILDER="f2b-multiarch"
 
-FULL_IMAGE="${DOCKER_USER}/${IMAGE_NAME}:${TAG}"
+BASE="${DOCKER_USER}/${IMAGE_NAME}"
 
 echo ""
-echo "==> Immagine : ${FULL_IMAGE}"
-echo "==> Piattaforme: ${PLATFORMS}"
+echo "==> Immagine : ${BASE}"
+echo "==> Tag che verranno creati:"
+echo "      ${BASE}:amd64"
+echo "      ${BASE}:arm64"
+echo "      ${BASE}:${TAG}  (manifest multi-arch)"
 echo ""
 
 echo "==> Login Docker Hub"
@@ -25,16 +27,24 @@ fi
 docker buildx use "${BUILDER}"
 
 echo ""
-echo "==> Build & push multi-arch"
-docker buildx build \
-  --platform "${PLATFORMS}" \
-  --tag "${FULL_IMAGE}" \
-  $( [[ "${TAG}" != "latest" ]] && echo "--tag ${DOCKER_USER}/${IMAGE_NAME}:latest" ) \
-  --push \
-  .
+echo "==> Build & push linux/amd64"
+docker buildx build --platform linux/amd64 --tag "${BASE}:amd64" --push .
 
 echo ""
-echo "✓ Fatto! Manifest multi-arch disponibile su:"
-echo "  https://hub.docker.com/r/${DOCKER_USER}/${IMAGE_NAME}"
+echo "==> Build & push linux/arm64"
+docker buildx build --platform linux/arm64 --tag "${BASE}:arm64" --push .
+
 echo ""
-echo "  amd64 e arm64 vengono scelti automaticamente da Docker al pull."
+echo "==> Creo manifest multi-arch :${TAG}"
+docker buildx imagetools create \
+  --tag "${BASE}:${TAG}" \
+  "${BASE}:amd64" \
+  "${BASE}:arm64"
+
+echo ""
+echo "✓ Fatto! Disponibile su: https://hub.docker.com/r/${BASE}"
+echo ""
+echo "  Usa il tag corretto per il tuo server:"
+echo "    amd64  →  ${BASE}:amd64"
+echo "    arm64  →  ${BASE}:arm64"
+echo "    auto   →  ${BASE}:${TAG}"
