@@ -259,6 +259,24 @@ docker run -d --name f2b-manager-web \
 
 ---
 
+### 🛡️ Sicurezza
+
+Le seguenti protezioni sono implementate nel codice:
+
+| Area | Protezione |
+|---|---|
+| **Shell injection** | Ogni IP è validato con `ipaddress.ip_address()`; ogni jail name è controllato con regex `[a-zA-Z0-9_-]{1,64}` prima di qualsiasi comando shell. I path dei file passati a shell sono quotati con `shlex.quote()`. |
+| **XSS (Web UI)** | Tutti i valori provenienti dall'API (IP, paese, jail name) sono escapati con `escHtml()` prima di essere inseriti nel DOM. Il bottone Unban usa `data-ip` invece di `onclick` con stringa interpolata. |
+| **API Key auth** | Confronto a tempo costante (`secrets.compare_digest`) — immune a timing attack. |
+| **Rate limiting** | 60 req/min per IP (configurabile); i bucket scaduti vengono eliminati ad ogni richiesta per evitare crescita illimitata in memoria. |
+| **Geo cache** | Limitata a 1024 entry con evizione FIFO per contenere l'uso di RAM. |
+| **SQLite** | Le connessioni sono chiuse in blocco `try/finally` anche in caso di eccezione. |
+| **Docker** | Container non-root (utente `f2b`, uid 1001); solo i volumi strettamente necessari. |
+
+> **Raccomandazione**: imposta sempre `F2B_API_KEY` quando esponi la web app su rete pubblica o LAN non fidata.
+
+---
+
 ### 🔬 Note tecniche
 
 - Il **modulo condiviso** `f2b_core.py` contiene tutta la logica (jail operations, geo, i18n, parsing), usata sia dalla TUI che dalla web app.
@@ -267,7 +285,7 @@ docker run -d --name f2b-manager-web \
 - L'indicatore **🔴 +N** segnala tentativi `Found` dopo l'ultimo ban — attacco in corso.
 - Il **parsing log è incrementale**: ad ogni refresh vengono lette solo le nuove righe.
 - Rilevamento automatico **Synology**: se rileva `/etc/synoinfo.conf`, cerca i percorsi alternativi.
-- La **geolocalizzazione** è in cache in memoria per l'intera sessione.
+- La **geolocalizzazione** è in cache in memoria (max 1024 entry, evizione FIFO).
 - I test sono in `tests/`: `python3 -m pytest tests/ -v`.
 
 ---
@@ -372,6 +390,24 @@ Then open http://your-server:8080.
 
 ---
 
+### 🛡️ Security
+
+The following protections are implemented in the codebase:
+
+| Area | Protection |
+|---|---|
+| **Shell injection** | Every IP is validated with `ipaddress.ip_address()`; every jail name is checked against `[a-zA-Z0-9_-]{1,64}` before any shell command. File paths passed to the shell are quoted with `shlex.quote()`. |
+| **XSS (Web UI)** | All API-derived values (IP, country, jail name) are escaped with `escHtml()` before DOM insertion. The Unban button uses a `data-ip` attribute instead of an interpolated `onclick` string. |
+| **API Key auth** | Constant-time comparison via `secrets.compare_digest` — immune to timing attacks. |
+| **Rate limiting** | 60 req/min per IP (configurable); expired buckets are removed on each request to prevent unbounded memory growth. |
+| **Geo cache** | Capped at 1024 entries with FIFO eviction to bound RAM usage. |
+| **SQLite** | Connections are closed in `try/finally` blocks even when an exception occurs. |
+| **Docker** | Non-root container (user `f2b`, uid 1001); only strictly necessary volume mounts. |
+
+> **Recommendation**: always set `F2B_API_KEY` when exposing the web app on a public or untrusted LAN.
+
+---
+
 ### 🔬 Technical notes
 
 - **Shared module** `f2b_core.py` contains all common logic, used by both TUI and web app.
@@ -380,7 +416,7 @@ Then open http://your-server:8080.
 - **🔴 +N** indicator flags `Found` events after the last ban — attack still ongoing.
 - **Incremental log parsing**: only new lines are read on each refresh.
 - **Synology auto-detection**: if `/etc/synoinfo.conf` exists, alternative paths are probed.
-- **Geolocation** is cached in memory for the entire session.
+- **Geolocation** is cached in memory (max 1024 entries, FIFO eviction).
 - Tests in `tests/`: `python3 -m pytest tests/ -v`.
 
 ---
