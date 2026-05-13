@@ -2,22 +2,23 @@
 
 # 🛡️ f2b-manager
 
-### Fail2ban Manager — TUI + Web Dashboard + Docker
+**Fail2ban Manager — TUI · Web Dashboard · REST API · Docker**
 
-[![Python](https://img.shields.io/badge/Python-3.11%2B-3776AB?logo=python&logoColor=white)](https://python.org)
-[![Platform](https://img.shields.io/badge/Platform-Linux%20%7C%20Synology-FCC624?logo=linux&logoColor=black)](https://kernel.org)
-[![License](https://img.shields.io/badge/License-MIT-22c55e)](LICENSE)
-[![Language](https://img.shields.io/badge/Language-IT%20%7C%20EN-8b5cf6)]()
-[![Docker](https://img.shields.io/badge/Docker-ready-2496ED?logo=docker&logoColor=white)]()
+[![Python](https://img.shields.io/badge/Python-3.11%2B-3776AB?logo=python&logoColor=white&style=for-the-badge)](https://python.org)
+[![FastAPI](https://img.shields.io/badge/FastAPI-0.115-009688?logo=fastapi&logoColor=white&style=for-the-badge)](https://fastapi.tiangolo.com)
+[![Docker](https://img.shields.io/badge/Docker-ready-2496ED?logo=docker&logoColor=white&style=for-the-badge)](https://hub.docker.com/r/pier86/f2b-manager)
+[![Tests](https://img.shields.io/badge/Tests-65%20passed-22c55e?logo=pytest&logoColor=white&style=for-the-badge)]()
+[![License](https://img.shields.io/badge/License-MIT-f59e0b?style=for-the-badge)](LICENSE)
 
-<br>
+<br/>
 
-*Gestisci fail2ban dal terminale o dal browser — con supporto multi-jail e Synology.*
-*Manage fail2ban from terminal or browser — with multi-jail and Synology support.*
+*Gestisci fail2ban dal terminale o dal browser — multi-jail, geo, Docker-ready.*
+<br/>
+*Manage fail2ban from terminal or browser — multi-jail, geolocation, Docker-ready.*
 
-<br>
+<br/>
 
-**🇮🇹 [Italiano](#-italiano) · 🇬🇧 [English](#-english)**
+**[🇮🇹 Italiano](#-italiano) · [🇬🇧 English](#-english)**
 
 </div>
 
@@ -25,49 +26,111 @@
 
 ## 🇮🇹 Italiano
 
+<details open>
+<summary><b>📑 Indice</b></summary>
+
+- [Cos'è](#cosè-f2b-manager)
+- [Funzionalità](#-funzionalità)
+- [Screenshot](#-screenshot)
+- [Prerequisiti](#️-prerequisiti)
+- [Installazione fail2ban](#-installazione-fail2ban)
+- [Geolocalizzazione](#-geolocalizzazione-opzionale)
+- [Configurazione](#-configurare-fail2ban)
+- [TUI — utilizzo](#️-utilizzo-tui)
+- [Web App — Docker Compose](#-docker-compose)
+- [Web App — Coolify](#-coolify)
+- [Web App — Docker diretto](#-docker-diretto)
+- [Variabili d'ambiente](#️-variabili-dambiente)
+- [Sicurezza](#️-sicurezza)
+- [Note tecniche](#-note-tecniche)
+
+</details>
+
+---
+
 ### Cos'è f2b-manager?
 
 `f2b-manager` è uno strumento completo per gestire **fail2ban** con due interfacce:
 
-- **TUI** (Terminal User Interface) — dashboard interattiva da terminale, zero dipendenze
-- **Web App** — dashboard moderna via browser con API REST, deployabile con Docker
+<table>
+<tr>
+<td align="center" width="50%">
 
-Supporta **jails multipli** (`sshd`, `synology-dsm`, `nginx-http-auth`, `postfix`, ecc.) e funziona su **Linux** e **Synology DSM**.
+### 🖥️ TUI
+Dashboard interattiva da terminale.<br/>
+Zero dipendenze extra, gira su qualsiasi Linux.
+
+</td>
+<td align="center" width="50%">
+
+### 🌐 Web App
+Dashboard moderna via browser con REST API.<br/>
+Deployabile con Docker, Coolify o bare metal.
+
+</td>
+</tr>
+</table>
+
+Supporta **jail multipli** (`sshd`, `synology-dsm`, `nginx-http-auth`, `postfix`, ...) e funziona su **Linux** e **Synology DSM**.
 
 ---
 
 ### ✨ Funzionalità
 
-| | Funzione |
-|---|---|
-| 🌍 | **Geolocalizzazione** — paese di origine di ogni IP |
-| 📊 | **Grafico a barre ASCII** — aggressività relativa di ogni IP |
-| 📈 | **Contatore storico** — IP distinti bannati dall'inizio (SQLite) |
-| 🏆 | **Top 5 di sempre** — IP più aggressivi con barre e paese |
-| 🗺️ | **Mappa geografica** — distribuzione attacchi per paese con percentuali |
-| ⏱️ | **Tempo residuo preciso** — dal database SQLite, al secondo |
-| 🔧 | **Gestione ban time** — modifica globale o per singolo IP |
-| 🔢 | **Preset pronti** — 1g, 5g, 7g, 10g, 15g, 30g, permanente |
-| ↕️ | **Ordinamento flessibile** — IP, data ban, numero tentativi |
-| 🌐 | **Multilingua IT/EN** — cambia lingua al volo con `[g]` |
-| 🔐 | **Auto root** (TUI) + **API Key auth** (Web) |
-| 🔴 | **Allerta attacchi attivi** — IP che tentano ancora dopo il ban |
-| 🔄 | **Multi-jail** — seleziona jail da gestire (SSH, Synology, Nginx, ...) |
-| 🖥️ | **Web UI** — dashboard moderna con Tailwind CSS e auto-refresh 30s |
-| 🐳 | **Docker** — container non-root con mount dei volumi host |
-| 🎨 | **Tema chiaro/scuro** — toggle nella web UI |
-| 🔒 | **Rate limiting** — protezione API (60 req/min per IP) |
+<table>
+<tr>
+<th>📡 Monitoraggio</th>
+<th>🔧 Gestione</th>
+<th>🚀 Deploy</th>
+</tr>
+<tr>
+<td>
+
+🌍 Geolocalizzazione IP<br/>
+📊 Barre ASCII aggressività<br/>
+📈 Contatore storico SQLite<br/>
+🏆 Top 5 IP più aggressivi<br/>
+🗺️ Distribuzione geografica<br/>
+⏱️ Tempo residuo al secondo<br/>
+🔴 Alert attacchi attivi
+
+</td>
+<td>
+
+🔒 Ban/unban IP<br/>
+🔧 Ban time globale e per IP<br/>
+🔢 Preset: 1g · 5g · 7g · 10g · 15g · 30g · ∞<br/>
+↕️ Ordinamento per IP / data / tentativi<br/>
+🔄 Selezione multi-jail<br/>
+🌐 Interfaccia IT / EN<br/>
+📋 Ultimi 20 eventi dal log
+
+</td>
+<td>
+
+🐳 Container non-root<br/>
+🧊 Coolify (una-click)<br/>
+🔐 API Key auth<br/>
+🛡️ Input validation & XSS protection<br/>
+⏱️ Rate limiting 60 req/min<br/>
+🎨 Tema chiaro / scuro<br/>
+♻️ Auto-refresh 30s
+
+</td>
+</tr>
+</table>
 
 ---
 
 ### 📸 Screenshot
 
-**Dashboard principale (TUI):**
+**TUI — Dashboard principale:**
+
 ```
 ==============================================================================
           FAIL2BAN MANAGER — sshd                               [sshd]   [IT]
 ==============================================================================
-  10/05/2026 09:15:42
+  13/05/2026 09:15:42
 ==============================================================================
 
   Tentativi falliti totali : 1482
@@ -78,9 +141,9 @@ Supporta **jails multipli** (`sshd`, `synology-dsm`, `nginx-http-auth`, `postfix
 
   #     IP               CC  Ultimo ban           Residuo    Tot  Tentativi
   ──────────────────────────────────────────────────────────────────────────
-  [1 ]  203.0.113.45     CN  2026-05-09 13:10:01  6g 22h      47  ████████░░  🔴 +3
-  [2 ]  198.51.100.12    RU  2026-05-08 09:44:17  5g 19h      23  ████░░░░░░
-  [3 ]  192.0.2.77       US  2026-05-07 21:05:55  4g 6h       11  ██░░░░░░░░
+  [1 ]  203.0.113.45     CN  2026-05-12 13:10:01  6g 22h      47  ████████░░  🔴 +3
+  [2 ]  198.51.100.12    RU  2026-05-11 09:44:17  5g 19h      23  ████░░░░░░
+  [3 ]  192.0.2.77       US  2026-05-10 21:05:55  4g  6h      11  ██░░░░░░░░
 
   [r] Aggiorna              [j] Cambia jail  (sshd)
   [u] Sbanna un IP          [t] Statistiche avanzate
@@ -89,54 +152,68 @@ Supporta **jails multipli** (`sshd`, `synology-dsm`, `nginx-http-auth`, `postfix
   [l] Ultimi eventi dal log
 ```
 
-**Web Dashboard:**
-La web UI offre le stesse funzionalità con un'interfaccia moderna, selettore jail, filtro per paese, ordinamento cliccabile sulle colonne, tema chiaro/scuro e auto-refresh ogni 30 secondi.
+**Web Dashboard:** selettore jail, filtro paese, ordinamento cliccabile su ogni colonna, tema chiaro/scuro e auto-refresh ogni 30 secondi.
 
 ---
 
 ### ⚙️ Prerequisiti
 
-- **Linux** o **Synology DSM** (con fail2ban installato)
-- **Python 3.11+** (per la TUI)
-- **fail2ban** — installato e attivo
-- **geoip-bin** *(opzionale)* — per la geolocalizzazione IP
-- **Docker** *(opzionale)* — per la web app
+| Componente | Richiesto | Note |
+|---|:---:|---|
+| Linux o Synology DSM | ✅ | fail2ban deve essere installato e attivo |
+| Python 3.11+ | Solo TUI | Non serve per la web app via Docker |
+| Docker | Solo Web | Opzionale — si può usare anche bare metal |
+| geoip-bin | ❌ | Opzionale — abilita la geolocalizzazione IP |
 
 ---
 
 ### 📦 Installazione fail2ban
 
-#### Debian / Ubuntu
+<details>
+<summary><b>🟠 Debian / Ubuntu</b></summary>
+
 ```bash
 sudo apt update && sudo apt install fail2ban -y
+sudo systemctl enable --now fail2ban
 ```
 
-#### CentOS / Rocky Linux / AlmaLinux
+</details>
+
+<details>
+<summary><b>🔵 CentOS / Rocky Linux / AlmaLinux</b></summary>
+
 ```bash
-sudo dnf install epel-release -y && sudo dnf install fail2ban -y
+sudo dnf install epel-release -y
+sudo dnf install fail2ban -y
+sudo systemctl enable --now fail2ban
 ```
 
-#### Arch Linux
+</details>
+
+<details>
+<summary><b>🟣 Arch Linux</b></summary>
+
 ```bash
 sudo pacman -S fail2ban
+sudo systemctl enable --now fail2ban
 ```
 
-#### Synology DSM
-fail2ban è disponibile tramite il **Centro Pacchetti Synology** o via **Entware**:
+</details>
+
+<details>
+<summary><b>🟢 Synology DSM</b></summary>
+
+fail2ban è disponibile via **Centro Pacchetti Synology** oppure via **Entware**:
+
 ```bash
-# Via Entware (dopo aver installato entware)
 opkg install fail2ban
 ```
 
-#### Avvia il servizio
-```bash
-sudo systemctl enable --now fail2ban
-sudo systemctl status fail2ban
-```
+</details>
 
 ---
 
-### 🌍 Installazione geoip-bin (geolocalizzazione)
+### 🌍 Geolocalizzazione *(opzionale)*
 
 ```bash
 # Debian / Ubuntu
@@ -157,7 +234,7 @@ Crea `/etc/fail2ban/jail.local`:
 
 ```ini
 [DEFAULT]
-ignoreip = 127.0.0.1/8 ::1
+ignoreip  = 127.0.0.1/8 ::1
 findtime  = 600
 maxretry  = 5
 bantime   = 86400
@@ -180,19 +257,22 @@ sudo systemctl restart fail2ban
 
 ---
 
-### 🚀 Utilizzo TUI
+### 🖥️ Utilizzo TUI
 
 ```bash
 git clone https://github.com/Pier-86/f2b-manager.git
 cd f2b-manager
-python3 f2b-manager.py
+python3 f2b-manager.py   # si auto-eleva con sudo
 ```
 
-Lo script si auto-eleva a root con `sudo` e supporta le variabili d'ambiente:
-- `F2B_JAIL=jail_name` — jail iniziale
-- `F2B_LANG=it|en` — lingua predefinita
+**Variabili d'ambiente opzionali:**
 
-#### ⌨️ Comandi TUI
+```bash
+F2B_JAIL=sshd    # jail iniziale (default: sshd)
+F2B_LANG=en      # lingua: it (default) | en
+```
+
+**Comandi tastiera:**
 
 | Tasto | Azione |
 |:-----:|--------|
@@ -208,26 +288,110 @@ Lo script si auto-eleva a root con `sudo` e supporta le variabili d'ambiente:
 
 ---
 
-### 🐳 Deploy Web App (Docker)
+### 🐳 Deploy Web App
 
-#### Con Docker Compose (consigliato)
+---
 
-Crea un file `.env`:
+#### 🐋 Docker Compose
+
 ```bash
-F2B_API_KEY=la-tua-chiave-segreta
-```
+git clone https://github.com/Pier-86/f2b-manager.git
+cd f2b-manager
 
-Poi:
-```bash
+# Crea il file di configurazione
+echo "F2B_API_KEY=la-tua-chiave-segreta" > .env
+
+# Avvia
 docker-compose up -d
 ```
 
-#### Con Docker direttamente
+Apri `http://localhost:8080`.
+
+---
+
+#### 🧊 Coolify
+
+> **⚠️ Requisito fondamentale**: Coolify deve girare sullo **stesso server** dove è installato fail2ban. Il container accede al socket Unix dell'host — non è possibile puntare a un server remoto.
+
+**Passo 1 — Nuovo servizio**
+
+In Coolify: **New Resource → Docker Compose (Empty)**
+
+**Passo 2 — Incolla il Compose**
+
+```yaml
+services:
+  f2b-web:
+    image: pier86/f2b-manager:latest
+    restart: unless-stopped
+    environment:
+      - F2B_JAILS=sshd
+      - F2B_JAIL=sshd
+      - F2B_API_KEY=${F2B_API_KEY}
+      - F2B_API_RATE_LIMIT=60
+      - F2B_API_RATE_WINDOW=60
+    volumes:
+      - /var/run/fail2ban:/var/run/fail2ban
+      - /var/lib/fail2ban:/var/lib/fail2ban:ro
+      - /var/log/fail2ban.log:/var/log/fail2ban.log:ro
+      - /var/log/auth.log:/var/log/auth.log:ro
+    ports:
+      - "8080:8080"
+```
+
+**Passo 3 — Environment Variables**
+
+Nel tab **Environment Variables** di Coolify aggiungi:
+
+```
+F2B_API_KEY=una-chiave-lunga-e-casuale
+```
+
+**Passo 4 — Dominio e HTTPS**
+
+Nel tab **Domains** aggiungi il tuo sottodominio (es. `f2b.tuodominio.com`).
+Coolify configura **Traefik + Let's Encrypt** automaticamente.
+
+**Passo 5 — Deploy**
+
+Clicca **Deploy** e attendi. L'immagine viene scaricata da Docker Hub, i volumi vengono montati e il servizio parte.
+
+```
+Internet → Traefik (Coolify) → HTTPS → f2b-manager:8080
+                                              ↓
+                              /var/run/fail2ban/fail2ban.sock  (host, rw)
+                              /var/lib/fail2ban/fail2ban.sqlite3  (host, ro)
+                              /var/log/fail2ban.log  (host, ro)
+```
+
+**Problema permessi socket?**
+
+Il container gira come utente non-root (uid 1001). Il socket di fail2ban sull'host appartiene tipicamente a `root:root 660`, quindi il container non può accedervi. Soluzione: aggiungi un **override systemd** sull'host che allarga i permessi ad ogni avvio di fail2ban:
+
 ```bash
-docker run -d --name f2b-manager-web \
+sudo mkdir -p /etc/systemd/system/fail2ban.service.d/
+
+sudo tee /etc/systemd/system/fail2ban.service.d/socket-perms.conf << 'EOF'
+[Service]
+ExecStartPost=/bin/chmod 666 /var/run/fail2ban/fail2ban.sock
+EOF
+
+sudo systemctl daemon-reload && sudo systemctl restart fail2ban
+```
+
+> Questa configurazione è permanente e sopravvive ai riavvii.
+
+---
+
+#### 🐟 Docker diretto
+
+```bash
+docker run -d \
+  --name f2b-manager-web \
+  --restart unless-stopped \
   -p 8080:8080 \
   -e F2B_API_KEY=la-tua-chiave-segreta \
-  -e F2B_JAILS=sshd,synology-dsm,nginx-http-auth \
+  -e F2B_JAILS=sshd,nginx-http-auth,postfix \
   -v /var/run/fail2ban:/var/run/fail2ban \
   -v /var/lib/fail2ban:/var/lib/fail2ban:ro \
   -v /var/log/fail2ban.log:/var/log/fail2ban.log:ro \
@@ -235,58 +399,57 @@ docker run -d --name f2b-manager-web \
   pier86/f2b-manager:latest
 ```
 
-#### Variabili d'ambiente
+---
+
+### ⚙️ Variabili d'ambiente
 
 | Variabile | Default | Descrizione |
-|---|---|---|
-| `F2B_JAILS` | `sshd` | Lista jails separata da virgola |
+|-----------|---------|-------------|
+| `F2B_JAILS` | `sshd` | Lista jail separata da virgola |
 | `F2B_JAIL` | Primo da `F2B_JAILS` | Jail attiva all'avvio |
 | `F2B_API_KEY` | *(vuoto)* | Se impostata, richiede auth su tutte le API |
 | `F2B_API_RATE_LIMIT` | `60` | Max richieste per finestra |
 | `F2B_API_RATE_WINDOW` | `60` | Finestra in secondi |
-| `F2B_DB` | auto-detect | Path database SQLite |
+| `F2B_DB` | auto-detect | Path database SQLite di fail2ban |
 | `F2B_LOG` | auto-detect | Path log fail2ban |
-| `F2B_GEOIP_BIN` | `geoiplookup` | Binary per geolocalizzazione |
+| `F2B_GEOIP_BIN` | `geoiplookup` | Binary per la geolocalizzazione |
 
-#### Volumi necessari
+**Volumi richiesti:**
 
-| Volume | Descrizione |
-|---|---|
-| `/var/run/fail2ban` | Socket Unix (lettura/scrittura) |
-| `/var/lib/fail2ban` | Database SQLite (sola lettura) |
-| `/var/log/fail2ban.log` | Log fail2ban (sola lettura) |
-| `/var/log/auth.log` | Log auth (opzionale, per SSH) |
+| Volume host | Mount container | Permessi | Scopo |
+|-------------|----------------|:--------:|-------|
+| `/var/run/fail2ban` | `/var/run/fail2ban` | `rw` | Socket Unix — comandi ban/unban |
+| `/var/lib/fail2ban` | `/var/lib/fail2ban` | `ro` | Database SQLite — tempo residuo |
+| `/var/log/fail2ban.log` | `/var/log/fail2ban.log` | `ro` | Log eventi |
+| `/var/log/auth.log` | `/var/log/auth.log` | `ro` | Log SSH *(opzionale)* |
 
 ---
 
 ### 🛡️ Sicurezza
 
-Le seguenti protezioni sono implementate nel codice:
+| Area | Protezione implementata |
+|------|------------------------|
+| **Shell injection** | IP validato con `ipaddress.ip_address()`; jail name con regex `[a-zA-Z0-9_-]{1,64}`; path quotati con `shlex.quote()` prima di ogni comando shell |
+| **XSS** | Tutti i valori API escapati con `escHtml()` prima dell'inserimento nel DOM; bottone Unban usa `data-ip` anziché `onclick` con stringa interpolata |
+| **API Key auth** | Confronto a tempo costante via `secrets.compare_digest` — immune a timing attack |
+| **Rate limiting** | 60 req/min per IP (configurabile); bucket scaduti rimossi automaticamente ad ogni richiesta |
+| **Geo cache** | Limitata a 1024 entry con evizione FIFO |
+| **SQLite** | Connessioni chiuse in blocco `try/finally` anche in caso di eccezione |
+| **Docker** | Container non-root (utente `f2b`, uid 1001); solo i volumi strettamente necessari |
 
-| Area | Protezione |
-|---|---|
-| **Shell injection** | Ogni IP è validato con `ipaddress.ip_address()`; ogni jail name è controllato con regex `[a-zA-Z0-9_-]{1,64}` prima di qualsiasi comando shell. I path dei file passati a shell sono quotati con `shlex.quote()`. |
-| **XSS (Web UI)** | Tutti i valori provenienti dall'API (IP, paese, jail name) sono escapati con `escHtml()` prima di essere inseriti nel DOM. Il bottone Unban usa `data-ip` invece di `onclick` con stringa interpolata. |
-| **API Key auth** | Confronto a tempo costante (`secrets.compare_digest`) — immune a timing attack. |
-| **Rate limiting** | 60 req/min per IP (configurabile); i bucket scaduti vengono eliminati ad ogni richiesta per evitare crescita illimitata in memoria. |
-| **Geo cache** | Limitata a 1024 entry con evizione FIFO per contenere l'uso di RAM. |
-| **SQLite** | Le connessioni sono chiuse in blocco `try/finally` anche in caso di eccezione. |
-| **Docker** | Container non-root (utente `f2b`, uid 1001); solo i volumi strettamente necessari. |
-
-> **Raccomandazione**: imposta sempre `F2B_API_KEY` quando esponi la web app su rete pubblica o LAN non fidata.
+> **💡 Raccomandazione**: imposta sempre `F2B_API_KEY` quando esponi la web app su rete pubblica o LAN non fidata.
 
 ---
 
 ### 🔬 Note tecniche
 
-- Il **modulo condiviso** `f2b_core.py` contiene tutta la logica (jail operations, geo, i18n, parsing), usata sia dalla TUI che dalla web app.
-- Il **tempo residuo** è letto dal database SQLite — preciso al secondo, non stimato.
-- Il cambio ban time per singolo IP: `unban → nuovo bantime → re-ban → ripristino`.
-- L'indicatore **🔴 +N** segnala tentativi `Found` dopo l'ultimo ban — attacco in corso.
-- Il **parsing log è incrementale**: ad ogni refresh vengono lette solo le nuove righe.
-- Rilevamento automatico **Synology**: se rileva `/etc/synoinfo.conf`, cerca i percorsi alternativi.
-- La **geolocalizzazione** è in cache in memoria (max 1024 entry, evizione FIFO).
-- I test sono in `tests/`: `python3 -m pytest tests/ -v`.
+- Il modulo condiviso `f2b_core.py` contiene tutta la logica (operazioni jail, geo, i18n, parsing log), usata sia dalla TUI che dalla web app.
+- Il **tempo residuo** è letto direttamente dal database SQLite di fail2ban — preciso al secondo, non stimato.
+- Il cambio ban time per singolo IP avviene in tre passi atomici: `unban → imposta nuovo bantime → re-ban → ripristina bantime originale`.
+- L'indicatore **🔴 +N** segnala eventi `Found` nel log dopo l'ultimo ban — l'IP sta ancora tentando.
+- Il **parsing del log è incrementale**: ad ogni refresh vengono lette solo le righe nuove dall'ultima posizione.
+- **Rilevamento Synology**: se `/etc/synoinfo.conf` è presente, i percorsi dei file vengono rilevati automaticamente.
+- Test: `python3 -m pytest tests/ -v` → 65 test.
 
 ---
 
@@ -296,70 +459,130 @@ Le seguenti protezioni sono implementate nel codice:
 
 ---
 
+<br/>
+
 ---
 
 ## 🇬🇧 English
+
+<details>
+<summary><b>📑 Table of Contents</b></summary>
+
+- [What is it](#what-is-f2b-manager)
+- [Features](#-features)
+- [Prerequisites](#️-prerequisites)
+- [Quick Start — TUI](#️-quick-start--tui)
+- [Quick Start — Docker](#-quick-start--docker)
+- [Deploy — Coolify](#-deploy--coolify)
+- [Configuration](#️-configuration)
+- [Security](#️-security)
+- [Technical notes](#-technical-notes)
+
+</details>
+
+---
 
 ### What is f2b-manager?
 
 `f2b-manager` is a complete **fail2ban management** tool with two interfaces:
 
-- **TUI** (Terminal User Interface) — interactive terminal dashboard, zero dependencies
-- **Web App** — modern browser dashboard with REST API, Docker-ready
+<table>
+<tr>
+<td align="center" width="50%">
 
-Supports **multiple jails** (`sshd`, `synology-dsm`, `nginx-http-auth`, `postfix`, etc.) and runs on **Linux** and **Synology DSM**.
+### 🖥️ TUI
+Interactive terminal dashboard.<br/>
+No extra dependencies, runs on any Linux.
+
+</td>
+<td align="center" width="50%">
+
+### 🌐 Web App
+Modern browser dashboard with REST API.<br/>
+Docker, Coolify or bare-metal ready.
+
+</td>
+</tr>
+</table>
+
+Supports **multiple jails** (`sshd`, `synology-dsm`, `nginx-http-auth`, `postfix`, ...) and runs on **Linux** and **Synology DSM**.
 
 ---
 
 ### ✨ Features
 
-| | Feature |
-|---|---|
-| 🌍 | **Geolocation** — country of origin for each IP |
-| 📊 | **ASCII bar chart** — relative aggressiveness of each IP |
-| 📈 | **Historical counter** — total distinct IPs ever banned |
-| 🏆 | **All-time Top 5** — most aggressive IPs with bars and country |
-| 🗺️ | **Geo map** — attack distribution by country with percentages |
-| ⏱️ | **Precise remaining time** — from fail2ban's SQLite DB |
-| 🔧 | **Ban time management** — global or per-IP (unban + re-ban) |
-| 🔢 | **Ready presets** — 1d, 5d, 7d, 10d, 15d, 30d, permanent |
-| ↕️ | **Flexible sorting** — IP, ban date, number of attempts |
-| 🌐 | **Bilingual IT/EN** — switch language on the fly |
-| 🔐 | **Auto root** (TUI) + **API Key auth** (Web) |
-| 🔴 | **Active attack alert** — flags IPs still attempting after ban |
-| 🔄 | **Multi-jail** — select jail to manage (SSH, Synology, Nginx...) |
-| 🖥️ | **Web UI** — dark modern dashboard with Tailwind CSS, 30s auto-refresh |
-| 🐳 | **Docker** — non-root container with host volume mounts |
-| 🎨 | **Light/Dark theme** — toggle in web UI |
-| 🔒 | **Rate limiting** — API protection (60 req/min per IP) |
+<table>
+<tr>
+<th>📡 Monitoring</th>
+<th>🔧 Management</th>
+<th>🚀 Deploy</th>
+</tr>
+<tr>
+<td>
+
+🌍 IP geolocation<br/>
+📊 ASCII aggressiveness bars<br/>
+📈 Historical SQLite counter<br/>
+🏆 All-time Top 5 IPs<br/>
+🗺️ Geo distribution map<br/>
+⏱️ Remaining time to the second<br/>
+🔴 Active attack alerts
+
+</td>
+<td>
+
+🔒 Ban / unban IPs<br/>
+🔧 Global and per-IP ban time<br/>
+🔢 Presets: 1d · 5d · 7d · 10d · 15d · 30d · ∞<br/>
+↕️ Sort by IP / date / attempts<br/>
+🔄 Multi-jail selector<br/>
+🌐 IT / EN interface<br/>
+📋 Last 20 log events
+
+</td>
+<td>
+
+🐳 Non-root container<br/>
+🧊 Coolify (one-click)<br/>
+🔐 API Key auth<br/>
+🛡️ Input validation & XSS protection<br/>
+⏱️ Rate limiting 60 req/min<br/>
+🎨 Light / dark theme<br/>
+♻️ 30s auto-refresh
+
+</td>
+</tr>
+</table>
 
 ---
 
-### 🚀 Quick start
+### ⚙️ Prerequisites
 
-#### TUI (host)
+| Component | Required | Notes |
+|---|:---:|---|
+| Linux or Synology DSM | ✅ | fail2ban must be installed and running |
+| Python 3.11+ | TUI only | Not needed for Docker-based web app |
+| Docker | Web only | Optional — bare metal also supported |
+| geoip-bin | ❌ | Optional — enables IP geolocation |
+
+---
+
+### 🖥️ Quick Start — TUI
+
 ```bash
 git clone https://github.com/Pier-86/f2b-manager.git
 cd f2b-manager
-python3 f2b-manager.py
+python3 f2b-manager.py   # auto-elevates with sudo
 ```
 
-#### Web (Docker)
+**Optional environment variables:**
+
 ```bash
-docker run -d --name f2b-manager-web \
-  -p 8080:8080 \
-  -e F2B_API_KEY=your-secret-key \
-  -v /var/run/fail2ban:/var/run/fail2ban \
-  -v /var/lib/fail2ban:/var/lib/fail2ban:ro \
-  -v /var/log/fail2ban.log:/var/log/fail2ban.log:ro \
-  pier86/f2b-manager:latest
+F2B_JAIL=sshd    # initial jail (default: sshd)
+F2B_LANG=en      # language: it (default) | en
 ```
 
-Then open http://your-server:8080.
-
----
-
-#### Keyboard controls (TUI)
+**Keyboard controls:**
 
 | Key | Action |
 |:---:|--------|
@@ -375,10 +598,104 @@ Then open http://your-server:8080.
 
 ---
 
-### 🔧 Configuration via environment variables
+### 🐳 Quick Start — Docker
+
+```bash
+docker run -d \
+  --name f2b-manager-web \
+  --restart unless-stopped \
+  -p 8080:8080 \
+  -e F2B_API_KEY=your-secret-key \
+  -v /var/run/fail2ban:/var/run/fail2ban \
+  -v /var/lib/fail2ban:/var/lib/fail2ban:ro \
+  -v /var/log/fail2ban.log:/var/log/fail2ban.log:ro \
+  pier86/f2b-manager:latest
+```
+
+Open `http://your-server:8080`.
+
+---
+
+### 🧊 Deploy — Coolify
+
+> **⚠️ Key requirement**: Coolify must run on the **same server** as fail2ban. The container accesses the host's Unix socket — remote servers are not supported.
+
+**Step 1 — New service**
+
+In Coolify: **New Resource → Docker Compose (Empty)**
+
+**Step 2 — Paste the Compose**
+
+```yaml
+services:
+  f2b-web:
+    image: pier86/f2b-manager:latest
+    restart: unless-stopped
+    environment:
+      - F2B_JAILS=sshd
+      - F2B_JAIL=sshd
+      - F2B_API_KEY=${F2B_API_KEY}
+      - F2B_API_RATE_LIMIT=60
+      - F2B_API_RATE_WINDOW=60
+    volumes:
+      - /var/run/fail2ban:/var/run/fail2ban
+      - /var/lib/fail2ban:/var/lib/fail2ban:ro
+      - /var/log/fail2ban.log:/var/log/fail2ban.log:ro
+      - /var/log/auth.log:/var/log/auth.log:ro
+    ports:
+      - "8080:8080"
+```
+
+**Step 3 — Environment Variables**
+
+In the **Environment Variables** tab add:
+
+```
+F2B_API_KEY=a-long-random-secret
+```
+
+**Step 4 — Domain & HTTPS**
+
+In the **Domains** tab add your subdomain (e.g. `f2b.yourdomain.com`).
+Coolify auto-configures **Traefik + Let's Encrypt**.
+
+**Step 5 — Deploy**
+
+Click **Deploy** and wait. The image is pulled from Docker Hub, volumes are mounted, the service starts.
+
+```
+Internet → Traefik (Coolify) → HTTPS → f2b-manager:8080
+                                              ↓
+                              /var/run/fail2ban/fail2ban.sock  (host, rw)
+                              /var/lib/fail2ban/fail2ban.sqlite3  (host, ro)
+                              /var/log/fail2ban.log  (host, ro)
+```
+
+**Socket permission issue?**
+
+The container runs as non-root (uid 1001). The fail2ban socket on the host is typically owned by `root:root 660`, so the container cannot reach it. Fix: add a **systemd override** on the host to widen the socket permissions on every fail2ban start:
+
+```bash
+sudo mkdir -p /etc/systemd/system/fail2ban.service.d/
+
+sudo tee /etc/systemd/system/fail2ban.service.d/socket-perms.conf << 'EOF'
+[Service]
+ExecStartPost=/bin/chmod 666 /var/run/fail2ban/fail2ban.sock
+EOF
+
+sudo systemctl daemon-reload && sudo systemctl restart fail2ban
+```
+
+> This override is permanent and survives reboots.
+
+---
+
+### ⚙️ Configuration
+
+**Environment variables:**
 
 | Variable | Default | Description |
-|---|---|---|
+|----------|---------|-------------|
 | `F2B_JAILS` | `sshd` | Comma-separated list of jails |
 | `F2B_JAIL` | First from `F2B_JAILS` | Active jail at startup |
 | `F2B_API_KEY` | *(empty)* | If set, requires auth on all API endpoints |
@@ -388,36 +705,42 @@ Then open http://your-server:8080.
 | `F2B_LOG` | auto-detect | fail2ban log path |
 | `F2B_GEOIP_BIN` | `geoiplookup` | Geolocation binary |
 
+**Required volumes:**
+
+| Host path | Container mount | Mode | Purpose |
+|-----------|----------------|:----:|---------|
+| `/var/run/fail2ban` | `/var/run/fail2ban` | `rw` | Unix socket — ban/unban commands |
+| `/var/lib/fail2ban` | `/var/lib/fail2ban` | `ro` | SQLite DB — remaining ban time |
+| `/var/log/fail2ban.log` | `/var/log/fail2ban.log` | `ro` | Event log |
+| `/var/log/auth.log` | `/var/log/auth.log` | `ro` | SSH auth log *(optional)* |
+
 ---
 
 ### 🛡️ Security
 
-The following protections are implemented in the codebase:
-
 | Area | Protection |
-|---|---|
-| **Shell injection** | Every IP is validated with `ipaddress.ip_address()`; every jail name is checked against `[a-zA-Z0-9_-]{1,64}` before any shell command. File paths passed to the shell are quoted with `shlex.quote()`. |
-| **XSS (Web UI)** | All API-derived values (IP, country, jail name) are escaped with `escHtml()` before DOM insertion. The Unban button uses a `data-ip` attribute instead of an interpolated `onclick` string. |
-| **API Key auth** | Constant-time comparison via `secrets.compare_digest` — immune to timing attacks. |
-| **Rate limiting** | 60 req/min per IP (configurable); expired buckets are removed on each request to prevent unbounded memory growth. |
-| **Geo cache** | Capped at 1024 entries with FIFO eviction to bound RAM usage. |
-| **SQLite** | Connections are closed in `try/finally` blocks even when an exception occurs. |
-| **Docker** | Non-root container (user `f2b`, uid 1001); only strictly necessary volume mounts. |
+|------|------------|
+| **Shell injection** | IP validated with `ipaddress.ip_address()`; jail name checked against `[a-zA-Z0-9_-]{1,64}`; file paths quoted with `shlex.quote()` before every shell command |
+| **XSS** | All API-derived values escaped with `escHtml()` before DOM insertion; Unban button uses `data-ip` attribute instead of interpolated `onclick` string |
+| **API Key auth** | Constant-time comparison via `secrets.compare_digest` — immune to timing attacks |
+| **Rate limiting** | 60 req/min per IP (configurable); expired buckets purged on each request to prevent unbounded memory growth |
+| **Geo cache** | Capped at 1024 entries with FIFO eviction |
+| **SQLite** | Connections closed in `try/finally` blocks even on exception |
+| **Docker** | Non-root container (user `f2b`, uid 1001); only strictly necessary volume mounts |
 
-> **Recommendation**: always set `F2B_API_KEY` when exposing the web app on a public or untrusted LAN.
+> **💡 Recommendation**: always set `F2B_API_KEY` when exposing the web app on a public network or untrusted LAN.
 
 ---
 
 ### 🔬 Technical notes
 
-- **Shared module** `f2b_core.py` contains all common logic, used by both TUI and web app.
-- **Remaining time** is read from fail2ban's SQLite DB — accurate to the second.
-- Per-IP ban time change: `unban → set bantime → re-ban → restore original`.
-- **🔴 +N** indicator flags `Found` events after the last ban — attack still ongoing.
-- **Incremental log parsing**: only new lines are read on each refresh.
-- **Synology auto-detection**: if `/etc/synoinfo.conf` exists, alternative paths are probed.
-- **Geolocation** is cached in memory (max 1024 entries, FIFO eviction).
-- Tests in `tests/`: `python3 -m pytest tests/ -v`.
+- The shared module `f2b_core.py` contains all logic (jail ops, geo, i18n, log parsing), used by both TUI and web app.
+- **Remaining time** is read directly from fail2ban's SQLite DB — accurate to the second, not estimated.
+- Per-IP ban time change is three atomic steps: `unban → set new bantime → re-ban → restore original bantime`.
+- The **🔴 +N** indicator flags `Found` log events after the last ban — the IP is still actively attacking.
+- **Incremental log parsing**: only new lines are read from the last known position on each refresh.
+- **Synology auto-detection**: if `/etc/synoinfo.conf` exists, file paths are probed automatically.
+- Tests: `python3 -m pytest tests/ -v` → 65 tests.
 
 ---
 
