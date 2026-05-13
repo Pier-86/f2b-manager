@@ -2,6 +2,7 @@
 import os
 import re
 import time
+import shlex
 import logging
 import sqlite3
 import subprocess
@@ -11,7 +12,7 @@ from pathlib import Path
 logger = logging.getLogger(__name__)
 
 
-SYNOLOGY_PATHS = {
+DEFAULT_PATHS = {
     "f2b_db": "/var/lib/fail2ban/fail2ban.sqlite3",
     "f2b_log": "/var/log/fail2ban.log",
     "f2b_sock": "/var/run/fail2ban/fail2ban.sock",
@@ -81,7 +82,7 @@ def detect_platform_paths() -> dict:
             if os.path.exists(alt["f2b_db"]) or os.path.exists(alt["f2b_sock"]):
                 logger.info("Using Synology paths: %s", alt)
                 return alt
-    return SYNOLOGY_PATHS
+    return DEFAULT_PATHS
 
 
 def detect_jails() -> list[dict]:
@@ -138,6 +139,23 @@ class F2BError(Exception):
     pass
 
 
+_JAIL_RE = re.compile(r'^[a-zA-Z0-9_-]{1,64}$')
+
+
+def _validate_ip(ip: str) -> str:
+    try:
+        ipaddress.ip_address(ip)
+        return ip
+    except ValueError:
+        raise F2BError(f"Invalid IP address: {ip!r}")
+
+
+def _validate_jail(jail: str) -> str:
+    if not _JAIL_RE.match(jail):
+        raise F2BError(f"Invalid jail name: {jail!r}")
+    return jail
+
+
 def run(cmd: str, check: bool = True) -> str:
     result = subprocess.run(cmd, shell=True, capture_output=True, text=True)
     if check and result.returncode != 0:
@@ -149,7 +167,8 @@ def run(cmd: str, check: bool = True) -> str:
 
 def get_available_jails() -> list[dict]:
     detected = detect_jails()
-    env_jails = Config().JAILS_ENV
+    cfg = Config()
+    env_jails = cfg.JAILS_ENV
     if env_jails and env_jails != [""]:
         configured = []
         for j in env_jails:
@@ -160,7 +179,7 @@ def get_available_jails() -> list[dict]:
             else:
                 info = DEFAULT_JAILS_CONFIG.get(j, {
                     "name": j, "icon": "\U0001f6e1\ufe0f",
-                    "log": Config().F2B_LOG, "log_pattern": j,
+                    "log": cfg.F2B_LOG, "log_pattern": j,
                 })
                 info["jail"] = j
                 configured.append(info)
@@ -171,7 +190,7 @@ def get_available_jails() -> list[dict]:
 def get_jail_status(jail: str = None, config: Config = None) -> dict:
     if config is None:
         config = Config()
-    j = jail or config.JAIL
+    j = _validate_jail(jail or config.JAIL)
     client = config.F2B_CLIENT
     out = run(f"{client} status {j}")
     banned_ips, total_failed, total_banned = [], 0, 0
@@ -196,7 +215,7 @@ def get_jail_status(jail: str = None, config: Config = None) -> dict:
 def get_jail_bantime(jail: str = None, config: Config = None) -> int:
     if config is None:
         config = Config()
-    j = jail or config.JAIL
+    j = _validate_jail(jail or config.JAIL)
     client = config.F2B_CLIENT
     try:
         out = run(f"{client} get {j} bantime")
@@ -208,7 +227,7 @@ def get_jail_bantime(jail: str = None, config: Config = None) -> int:
 def set_jail_bantime(seconds: int, jail: str = None, config: Config = None):
     if config is None:
         config = Config()
-    j = jail or config.JAIL
+    j = _validate_jail(jail or config.JAIL)
     client = config.F2B_CLIENT
     run(f"{client} set {j} bantime {seconds}")
 
@@ -216,7 +235,8 @@ def set_jail_bantime(seconds: int, jail: str = None, config: Config = None):
 def unban_ip(ip: str, jail: str = None, config: Config = None) -> bool:
     if config is None:
         config = Config()
-    j = jail or config.JAIL
+    j = _validate_jail(jail or config.JAIL)
+    _validate_ip(ip)
     client = config.F2B_CLIENT
     result = run(f"{client} set {j} unbanip {ip}")
     return "1" in result or result == ip
@@ -225,7 +245,8 @@ def unban_ip(ip: str, jail: str = None, config: Config = None) -> bool:
 def reban_ip(ip: str, seconds: int, jail: str = None, config: Config = None) -> bool:
     if config is None:
         config = Config()
-    j = jail or config.JAIL
+    j = _validate_jail(jail or config.JAIL)
+    _validate_ip(ip)
     client = config.F2B_CLIENT
     original = get_jail_bantime(j, config)
     r_unban = run(f"{client} set {j} unbanip {ip}")
@@ -242,7 +263,7 @@ def reban_ip(ip: str, seconds: int, jail: str = None, config: Config = None) -> 
 def get_remaining_bantimes(ips: list, jail: str = None, config: Config = None) -> dict:
     if config is None:
         config = Config()
-    j = jail or config.JAIL
+    j = _validate_jail(jail or config.JAIL)
     if not ips:
         return {}
     ips_set = set(ips)
@@ -250,10 +271,12 @@ def get_remaining_bantimes(ips: list, jail: str = None, config: Config = None) -
     result = {}
     try:
         conn = sqlite3.connect(config.F2B_DB)
-        rows = conn.execute(
-            "SELECT ip, timeofban, bantime FROM bans WHERE jail=?", (j,)
-        ).fetchall()
-        conn.close()
+        try:
+            rows = conn.execute(
+                "SELECT ip, timeofban, bantime FROM bans WHERE jail=?", (j,)
+            ).fetchall()
+        finally:
+            conn.close()
         for ip, timeofban, bantime in rows:
             if ip not in ips_set:
                 continue
@@ -270,13 +293,15 @@ def get_remaining_bantimes(ips: list, jail: str = None, config: Config = None) -
 def get_historical_count(jail: str = None, config: Config = None) -> int:
     if config is None:
         config = Config()
-    j = jail or config.JAIL
+    j = _validate_jail(jail or config.JAIL)
     try:
         conn = sqlite3.connect(config.F2B_DB)
-        row = conn.execute(
-            "SELECT COUNT(DISTINCT ip) FROM bans WHERE jail=?", (j,)
-        ).fetchone()
-        conn.close()
+        try:
+            row = conn.execute(
+                "SELECT COUNT(DISTINCT ip) FROM bans WHERE jail=?", (j,)
+            ).fetchone()
+        finally:
+            conn.close()
         return row[0] if row else 0
     except Exception as e:
         logger.warning("SQLite historical count (%s): %s", j, e)
@@ -401,9 +426,9 @@ def get_ip_stats(ips: list, jail: str = None, config: Config = None) -> dict:
 def get_top_ips(n: int = 5, jail: str = None, config: Config = None) -> list:
     if config is None:
         config = Config()
-    j = jail or config.JAIL
+    j = _validate_jail(jail or config.JAIL)
     escaped = re.escape(j)
-    out = run(f"grep '\\[{escaped}\\] Found' {config.F2B_LOG} 2>/dev/null || true")
+    out = run(f"grep '\\[{escaped}\\] Found' {shlex.quote(config.F2B_LOG)} 2>/dev/null || true")
     regex = _make_jail_regex(j)["found"]
     counts = {}
     for line in out.splitlines():
@@ -417,6 +442,7 @@ def get_top_ips(n: int = 5, jail: str = None, config: Config = None) -> list:
 # ── geo lookup ─────────────────────────────────────────────────────────
 
 _GEO_CACHE: dict[str, tuple[str, str]] = {}
+_GEO_CACHE_MAX = 1024
 
 
 def get_geo(ip: str, config: Config = None) -> tuple[str, str]:
@@ -425,7 +451,7 @@ def get_geo(ip: str, config: Config = None) -> tuple[str, str]:
     if ip in _GEO_CACHE:
         return _GEO_CACHE[ip]
     try:
-        out = run(f"{config.GEOIP_BIN} {ip} 2>/dev/null", check=False)
+        out = run(f"{shlex.quote(config.GEOIP_BIN)} {shlex.quote(ip)} 2>/dev/null", check=False)
         m = re.search(r':\s*([A-Z]{2}),\s*(.+)', out)
         if m:
             result = (m.group(1).strip(), m.group(2).strip())
@@ -433,6 +459,8 @@ def get_geo(ip: str, config: Config = None) -> tuple[str, str]:
             result = ("??", "")
     except Exception:
         result = ("??", "")
+    if len(_GEO_CACHE) >= _GEO_CACHE_MAX:
+        _GEO_CACHE.pop(next(iter(_GEO_CACHE)))
     _GEO_CACHE[ip] = result
     return result
 
@@ -599,6 +627,7 @@ STRINGS = {
         "menu_s": "[s] Cambia ordinamento",
         "menu_l": "[l] Ultimi eventi dal log",
         "menu_t": "[t] Statistiche avanzate",
+        "menu_j": "[j] Cambia jail",
         "menu_g": "[g] Lingua / Language  \u2192  EN",
         "menu_q": "[q] Esci",
         "stats_title": "STATISTICHE AVANZATE",
@@ -659,6 +688,7 @@ STRINGS = {
         "menu_s": "[s] Change sort order",
         "menu_l": "[l] Last log events",
         "menu_t": "[t] Advanced statistics",
+        "menu_j": "[j] Switch jail",
         "menu_g": "[g] Lingua / Language  \u2192  IT",
         "menu_q": "[q] Quit",
         "stats_title": "ADVANCED STATISTICS",

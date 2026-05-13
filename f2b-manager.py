@@ -255,7 +255,7 @@ def main():
 
         print(f"  {t('menu_r')}")
         if len(jails_cache) > 1:
-            print(f"  [j] Cambia jail  ({config.ACTIVE_JAIL})")
+            print(f"  {t('menu_j')}  ({config.ACTIVE_JAIL})")
         print(f"  {t('menu_u')}")
         print(f"  {t('menu_b')}")
         print(f"  {t('menu_s')}")
@@ -292,8 +292,9 @@ def main():
             clear()
             header()
             print(f"\n  {t('log_title')}  [{config.ACTIVE_JAIL}]\n")
+            import shlex as _shlex
             from f2b_core import run as _run
-            log = _run(f"grep -E '\\[{config.ACTIVE_JAIL}\\] (Ban|Unban|Found)' {config.F2B_LOG} 2>/dev/null | tail -20", check=False)
+            log = _run(f"grep -E '\\[{config.ACTIVE_JAIL}\\] (Ban|Unban|Found)' {_shlex.quote(config.F2B_LOG)} 2>/dev/null | tail -20", check=False)
             for line in log.splitlines():
                 if "Ban " in line and "Unban" not in line:
                     print(f"  \U0001f534 {line}")

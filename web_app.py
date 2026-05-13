@@ -3,6 +3,7 @@ import re
 import time
 import logging
 import secrets
+import ipaddress
 from contextlib import asynccontextmanager
 from pathlib import Path
 
@@ -15,7 +16,7 @@ from pydantic import BaseModel
 from f2b_core import (
     Config, F2BError, get_jail_status, get_jail_bantime, set_jail_bantime,
     unban_ip, get_remaining_bantimes, get_historical_count, get_ip_stats,
-    get_geo, get_available_jails, format_duration as _format_duration,
+    get_geo, get_available_jails,
 )
 
 logging.basicConfig(
@@ -28,6 +29,21 @@ logger = logging.getLogger("f2b-web")
 config = Config()
 
 _rate_limit_buckets: dict[str, dict] = {}
+_JAIL_RE = re.compile(r'^[a-zA-Z0-9_-]{1,64}$')
+
+
+def _checked_ip(ip: str) -> str:
+    try:
+        ipaddress.ip_address(ip)
+        return ip
+    except ValueError:
+        raise HTTPException(status_code=400, detail=f"Invalid IP address: {ip!r}")
+
+
+def _checked_jail(jail: str) -> str:
+    if not _JAIL_RE.match(jail):
+        raise HTTPException(status_code=400, detail=f"Invalid jail name: {jail!r}")
+    return jail
 
 
 def _check_rate_limit(request: Request):
@@ -35,6 +51,10 @@ def _check_rate_limit(request: Request):
         return
     client_ip = request.client.host if request.client else "unknown"
     now = time.monotonic()
+    expired = [k for k, v in _rate_limit_buckets.items()
+               if now - v["window_start"] > config.API_RATE_WINDOW]
+    for k in expired:
+        del _rate_limit_buckets[k]
     bucket = _rate_limit_buckets.get(client_ip)
     if bucket is None or now - bucket["window_start"] > config.API_RATE_WINDOW:
         bucket = {"tokens": config.API_RATE_LIMIT - 1, "window_start": now}
@@ -106,7 +126,7 @@ async def api_jails(_=Depends(verify_auth), __=Depends(_check_rate_limit)):
 
 @app.get("/api/status")
 async def api_status(jail: str = Query(None), _=Depends(verify_auth), __=Depends(_check_rate_limit)):
-    j = jail or config.ACTIVE_JAIL
+    j = _checked_jail(jail or config.ACTIVE_JAIL)
     try:
         status = get_jail_status(j, config)
     except F2BError as e:
@@ -156,7 +176,8 @@ async def api_status(jail: str = Query(None), _=Depends(verify_auth), __=Depends
 
 @app.post("/api/unban/{ip}")
 async def api_unban(ip: str, jail: str = Query(None), _=Depends(verify_auth), __=Depends(_check_rate_limit)):
-    j = jail or config.ACTIVE_JAIL
+    _checked_ip(ip)
+    j = _checked_jail(jail or config.ACTIVE_JAIL)
     try:
         ok = unban_ip(ip, j, config)
     except F2BError as e:
@@ -174,16 +195,14 @@ class BantimeRequest(BaseModel):
 
 @app.get("/api/bantime")
 async def api_get_bantime(jail: str = Query(None), _=Depends(verify_auth), __=Depends(_check_rate_limit)):
-    j = jail or config.ACTIVE_JAIL
+    j = _checked_jail(jail or config.ACTIVE_JAIL)
     raw = get_jail_bantime(j, config)
-    if raw == 0 and get_jail_bantime(j, config) is None:
-        raise HTTPException(status_code=500, detail="Cannot read bantime")
     return {"seconds": raw, "label": format_duration(raw), "jail": j}
 
 
 @app.post("/api/bantime")
 async def api_set_bantime(body: BantimeRequest, jail: str = Query(None), _=Depends(verify_auth), __=Depends(_check_rate_limit)):
-    j = jail or config.ACTIVE_JAIL
+    j = _checked_jail(jail or config.ACTIVE_JAIL)
     if body.seconds < 60:
         raise HTTPException(status_code=400, detail="Minimum bantime is 60 seconds")
     try:

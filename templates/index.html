@@ -184,6 +184,10 @@
   </div>
 
   <script>
+    function escHtml(s) {
+      return String(s ?? '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');
+    }
+
     let currentUnbanIp = null;
     let refreshTimer = null;
     let currentData = null;
@@ -250,7 +254,7 @@
         availableJails = data.jails;
         const sel = document.getElementById('jail-selector');
         sel.innerHTML = data.jails.map(j =>
-          `<option value="${j.jail}" ${j.jail === data.active ? 'selected' : ''}>${j.icon || '\u{1f6e1}\ufe0f'} ${j.name || j.jail}</option>`
+          `<option value="${escHtml(j.jail)}" ${j.jail === data.active ? 'selected' : ''}>${escHtml(j.icon || '\u{1f6e1}\ufe0f')} ${escHtml(j.name || j.jail)}</option>`
         ).join('');
         activeJail = data.active;
         const badge = document.getElementById('platform-badge');
@@ -392,7 +396,7 @@
       ).entries()].sort((a, b) => (a[1] || '').localeCompare(b[1] || ''));
       sel.innerHTML = '<option value="">Tutti</option>' +
         countries.map(([cc, name]) =>
-          `<option value="${cc}" ${cc === prev ? 'selected' : ''}>${flagEmoji(cc)} ${name}</option>`
+          `<option value="${escHtml(cc)}" ${cc === prev ? 'selected' : ''}>${flagEmoji(cc)} ${escHtml(name)}</option>`
         ).join('');
     }
 
@@ -420,20 +424,20 @@
       }
       tbody.innerHTML = sortedBans(filtered).map(ban => `
         <tr class="border-b border-gray-800/50 hover:bg-gray-800/30 transition">
-          <td class="px-5 py-3 font-semibold text-white">${ban.ip}</td>
+          <td class="px-5 py-3 font-semibold text-white">${escHtml(ban.ip)}</td>
           <td class="px-5 py-3">
             <span class="flag">${flagEmoji(ban.country_code)}</span>
-            <span class="text-gray-400 text-xs ml-1">${ban.country || ban.country_code}</span>
+            <span class="text-gray-400 text-xs ml-1">${escHtml(ban.country || ban.country_code)}</span>
           </td>
           <td class="px-5 py-3">
             <span class="px-2 py-0.5 rounded text-xs font-semibold ${remainingBadge(ban.remaining_seconds)}">
-              ${ban.remaining_label}
+              ${escHtml(ban.remaining_label)}
             </span>
           </td>
           <td class="px-5 py-3 text-gray-300">${ban.total_found.toLocaleString()}</td>
-          <td class="px-5 py-3 text-gray-500 text-xs">${ban.last_ban || '—'}</td>
+          <td class="px-5 py-3 text-gray-500 text-xs">${escHtml(ban.last_ban || '—')}</td>
           <td class="px-5 py-3 text-right">
-            <button onclick="openUnbanModal('${ban.ip}')"
+            <button data-ip="${escHtml(ban.ip)}" onclick="openUnbanModal(this.dataset.ip)"
               class="px-3 py-1 text-xs rounded bg-red-900/50 hover:bg-red-800 text-red-300 border border-red-800/50 transition">Unban</button>
           </td>
         </tr>

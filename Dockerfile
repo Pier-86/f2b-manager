@@ -4,7 +4,6 @@ RUN apt-get update && \
     apt-get install -y --no-install-recommends \
         fail2ban \
         geoip-bin \
-        curl \
     && rm -rf /var/lib/apt/lists/*
 
 RUN addgroup --system --gid 1001 f2b && \
@@ -19,9 +18,7 @@ COPY f2b_core.py web_app.py ./
 COPY templates/ templates/
 COPY static/ static/
 
-RUN curl -sL -o /app/static/tailwind.min.css \
-    https://cdn.tailwindcss.com && \
-    chown -R f2b:f2b /app
+RUN chown -R f2b:f2b /app
 
 USER f2b
 
