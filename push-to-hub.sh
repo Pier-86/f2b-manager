@@ -2,43 +2,39 @@
 set -euo pipefail
 
 IMAGE_NAME="f2b-manager"
+DOCKER_USER="${DOCKER_USER:-slashino}"
 TAG="${1:-latest}"
+PLATFORMS="${PLATFORMS:-linux/amd64,linux/arm64}"
+BUILDER="f2b-multiarch"
 
-if [[ -z "${DOCKER_USER:-}" ]]; then
-  read -rp "Docker Hub username: " DOCKER_USER
-fi
 FULL_IMAGE="${DOCKER_USER}/${IMAGE_NAME}:${TAG}"
 
 echo ""
-echo "==> Build: ${FULL_IMAGE}"
-docker build -t "${FULL_IMAGE}" .
-
-if [[ "$TAG" != "latest" ]]; then
-  docker tag "${FULL_IMAGE}" "${DOCKER_USER}/${IMAGE_NAME}:latest"
-fi
-
+echo "==> Immagine : ${FULL_IMAGE}"
+echo "==> Piattaforme: ${PLATFORMS}"
 echo ""
+
 echo "==> Login Docker Hub"
-docker login
+docker login -u "${DOCKER_USER}"
 
 echo ""
-echo "==> Push: ${FULL_IMAGE}"
-docker push "${FULL_IMAGE}"
-
-if [[ "$TAG" != "latest" ]]; then
-  echo "==> Push: ${DOCKER_USER}/${IMAGE_NAME}:latest"
-  docker push "${DOCKER_USER}/${IMAGE_NAME}:latest"
+echo "==> Configuro buildx builder (${BUILDER})"
+if ! docker buildx inspect "${BUILDER}" &>/dev/null; then
+  docker buildx create --name "${BUILDER}" --driver docker-container --bootstrap
 fi
+docker buildx use "${BUILDER}"
 
 echo ""
-echo "✓ Fatto! Immagine disponibile su:"
+echo "==> Build & push multi-arch"
+docker buildx build \
+  --platform "${PLATFORMS}" \
+  --tag "${FULL_IMAGE}" \
+  $( [[ "${TAG}" != "latest" ]] && echo "--tag ${DOCKER_USER}/${IMAGE_NAME}:latest" ) \
+  --push \
+  .
+
+echo ""
+echo "✓ Fatto! Manifest multi-arch disponibile su:"
 echo "  https://hub.docker.com/r/${DOCKER_USER}/${IMAGE_NAME}"
 echo ""
-echo "Per deployare:"
-echo "  docker run -d --name f2b-manager-web \\"
-echo "    -p 8080:8080 \\"
-echo "    -e F2B_API_KEY=your-secret-key \\"
-echo "    -v /var/run/fail2ban:/var/run/fail2ban \\"
-echo "    -v /var/lib/fail2ban:/var/lib/fail2ban:ro \\"
-echo "    -v /var/log/fail2ban.log:/var/log/fail2ban.log:ro \\"
-echo "    ${FULL_IMAGE}"
+echo "  amd64 e arm64 vengono scelti automaticamente da Docker al pull."
